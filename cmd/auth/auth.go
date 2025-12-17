@@ -1,11 +1,6 @@
 package main
 
 import (
-	"auth/internal/adapters/api/rest"
-	"auth/internal/adapters/config"
-	"auth/internal/adapters/storage"
-	"auth/internal/core/auth"
-	"auth/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -15,6 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/playmixer/single-auth/internal/adapters/api/rest"
+	"github.com/playmixer/single-auth/internal/adapters/config"
+	"github.com/playmixer/single-auth/internal/adapters/storage"
+	"github.com/playmixer/single-auth/internal/core/auth"
+	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
 )
 

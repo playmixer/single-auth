@@ -1,8 +1,6 @@
 package main
 
 import (
-	"auth/internal/adapters/storage"
-	"auth/pkg/utils"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -10,6 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/playmixer/single-auth/internal/adapters/storage"
+	"github.com/playmixer/single-auth/pkg/utils"
 )
 
 func main() {

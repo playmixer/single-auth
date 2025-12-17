@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/playmixer/single-auth/internal/adapters/types"
-	authtools "github.com/playmixer/single-auth/pkg/auth"
+	authtools "github.com/playmixer/single-auth/pkg/authtools"
 	"github.com/playmixer/single-auth/pkg/logger"
 )
 
