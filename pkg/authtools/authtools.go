@@ -7,7 +7,7 @@ import (
 )
 
 // VerifyJWT - Проверяет JWT.
-func VerifyJWT(secretKey string, signedData string) (map[string]string, bool) {
+func VerifyJWT(secretKey []byte, signedData string) (map[string]string, bool) {
 	data := make(map[string]string)
 	token, err := jwt.Parse(signedData, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -33,7 +33,7 @@ func VerifyJWT(secretKey string, signedData string) (map[string]string, bool) {
 }
 
 // CreateJWT - Создает JWT ключ и записывает в него ID пользователя.
-func CreateJWT(secretKey string, data map[string]string) (string, error) {
+func CreateJWT(secretKey []byte, data map[string]string) (string, error) {
 	var payload jwt.MapClaims = make(jwt.MapClaims)
 	for k, v := range data {
 		payload[k] = v

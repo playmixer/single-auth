@@ -63,7 +63,10 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 		"userID": strconv.Itoa(int(user.ID)),
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed create token"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed create token",
+			"message": err.Error(),
+		})
 		return
 	}
 	c.SetCookie(CookieNameToken, token, 0, "/", c.Request.Host, true, true)

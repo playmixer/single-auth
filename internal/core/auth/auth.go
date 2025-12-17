@@ -59,10 +59,10 @@ func (a *Auth) GetPayloadUser(appID string, data map[string]string) (params, app
 
 // VerifyJWT - Проверяет JWT.
 func (a *Auth) VerifyJWT(signedData string) (map[string]string, bool) {
-	return authtools.VerifyJWT(string(a.secretKey), signedData)
+	return authtools.VerifyJWT(a.secretKey, signedData)
 }
 
 // CreateJWT - Создает JWT ключ и записывает в него ID пользователя.
 func (a *Auth) CreateJWT(data map[string]string) (string, error) {
-	return authtools.CreateJWT(string(a.secretKey), data)
+	return authtools.CreateJWT(a.secretKey, data)
 }
