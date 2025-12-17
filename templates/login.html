@@ -1,0 +1,149 @@
+{{ define "login.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Страница авторизации</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .auth-form {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .auth-form form {
+            display: flex;
+            flex-direction: column;
+        }
+        .auth-form input {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .auth-form button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+        }
+        .auth-form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    {{ if not .isAuth }}
+    <div class="auth-form">
+        <form method="post" id="authform">
+            <h2>Авторизация</h2>
+            <input type="text" name="login" placeholder="Введите логин">
+            <input type="password" name="password" placeholder="Введите пароль">
+            <span id="authError" style="color: darkred;"></span>
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+    {{ else }}
+    <div class="auth-form">
+        <h2>Приветствую <b>{{ .user.Username }}</b></h2>
+        <span id="authError" style="color: darkred;"></span>
+        <br><a href="/auth/logout">Выйти</a>
+    </div>
+    {{ end }}
+    <script>
+        // {{ if .isAuth }}
+        var isAuth = true;
+        // {{ else }}
+        var isAuth = false;
+        // {{ end }}
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        let appID = params.appID;
+
+        const authform = document.querySelector("#authform")
+        authform?.addEventListener("submit", async function(e) {
+            e.preventDefault()
+
+            const authError = document.querySelector("#authError")
+            const login = document.querySelector("[name='login']")
+            const password = document.querySelector("[name='password']")
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: login.value,
+                    password: password.value
+                })
+            })
+
+            authError.innerHTML
+            const data = await response.json()
+            if (response.status == 200) {
+                // if (callBack) {
+                //     const payload = JSON.stringify({
+                //         token: data.token
+                //     })
+                //     const url = new URL(callBack);    
+                //     const encData = btoa(payload)
+
+                //     url.searchParams.append('payload', encData);
+                //     const newUrl = url.toString();
+
+                //     window.location.href = newUrl
+                // } else {
+                // }
+                console.log("reload")
+                window.location.reload()
+            } else {
+                authError.innerHTML = data.error
+            }
+        })
+
+        
+        async function getAppInfo() {
+            if (appID == null) {
+                    authError.innerHTML = "Не передан идентифткатор приложения"
+                return
+            }
+            const response = await fetch(`/api/user/authInfo?appID=${appID}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            const data = await response.json()
+            if (response.status == 200) {
+                const url = new URL(data.appLink)
+                url.searchParams.append("paramsURI", data.params)
+                const newURL = url.toString()
+
+                window.location.href = newURL
+            } else {
+                authError.innerHTML = data.error
+            }
+        }
+
+        if (!!isAuth) {
+            getAppInfo()
+        }
+                
+        </script>
+</body>
+</html>
+{{ end }}

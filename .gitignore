@@ -1,0 +1,4 @@
+.env
+*.setting.json
+data
+logs
