@@ -1,11 +1,11 @@
 package config
 
 import (
-	"auth/internal/adapters/api/rest"
 	"fmt"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
+	"github.com/playmixer/single-auth/internal/adapters/api/rest"
 )
 
 // Config конфигурация сервиса.

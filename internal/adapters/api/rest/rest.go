@@ -1,8 +1,6 @@
 package rest
 
 import (
-	"auth/internal/adapters/types"
-	"auth/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
 )
 

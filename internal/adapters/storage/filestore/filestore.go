@@ -1,14 +1,15 @@
 package filestore
 
 import (
-	"auth/internal/adapters/apperror"
-	"auth/internal/adapters/types"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/playmixer/single-auth/internal/adapters/apperror"
+	"github.com/playmixer/single-auth/internal/adapters/types"
 )
 
 type userData struct {

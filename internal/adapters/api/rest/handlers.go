@@ -1,12 +1,12 @@
 package rest
 
 import (
-	"auth/internal/adapters/types"
-	"auth/pkg/utils"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/pkg/utils"
 	"go.uber.org/zap"
 )
 

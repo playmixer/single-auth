@@ -1,11 +1,12 @@
 package auth
 
 import (
-	"auth/internal/adapters/apperror"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/playmixer/single-auth/internal/adapters/apperror"
 )
 
 var (

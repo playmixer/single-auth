@@ -1,4 +1,4 @@
-module auth
+module github.com/playmixer/single-auth
 
 go 1.25.0
 

@@ -1,13 +1,14 @@
 package auth
 
 import (
-	"auth/internal/adapters/types"
-	authtools "auth/pkg/auth"
-	"auth/pkg/logger"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/playmixer/single-auth/internal/adapters/types"
+	authtools "github.com/playmixer/single-auth/pkg/auth"
+	"github.com/playmixer/single-auth/pkg/logger"
 )
 
 type Store interface {

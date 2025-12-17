@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"auth/internal/adapters/storage/filestore"
-	"auth/internal/adapters/types"
 	"context"
+
+	"github.com/playmixer/single-auth/internal/adapters/storage/filestore"
+	"github.com/playmixer/single-auth/internal/adapters/types"
 )
 
 type Storage interface {
