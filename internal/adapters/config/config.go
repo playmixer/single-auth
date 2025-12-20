@@ -6,6 +6,9 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"github.com/playmixer/single-auth/internal/adapters/api/rest"
+	"github.com/playmixer/single-auth/internal/adapters/storage"
+	"github.com/playmixer/single-auth/internal/adapters/storage/database"
+	"github.com/playmixer/single-auth/internal/adapters/storage/filestore"
 )
 
 // Config конфигурация сервиса.
@@ -14,17 +17,17 @@ type Config struct {
 	// Store    storage.Config
 	LogLevel  string `env:"LOG_LEVEL"`
 	SecretKey string `env:"AUTH_SECRET_KEY"`
+	Store     storage.Config
 }
 
 // Init инициализирует конфигурацию сервиса.
 func Init() (*Config, error) {
 	cfg := Config{
 		API: rest.Config{},
-		// Store: storage.Config{
-		// 	File:     &file.Config{},
-		// 	Database: &database.Config{},
-		// 	Memory:   &memory.Config{},
-		// },
+		Store: storage.Config{
+			File:     filestore.Config{},
+			Database: database.Config{},
+		},
 	}
 
 	_ = godotenv.Load(".env")

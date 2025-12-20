@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	authtools "github.com/playmixer/single-auth/pkg/authtools"
 	"github.com/playmixer/single-auth/pkg/logger"
 )
 
 type Store interface {
-	GetUser(ctx context.Context, username string) (*types.User, error)
-	CreateUser(ctx context.Context, username string, passwordHash string) (*types.User, error)
-	GetUserByID(ctx context.Context, userID uint) (*types.User, error)
+	GetUser(ctx context.Context, username string) (*models.User, error)
+	CreateUser(ctx context.Context, username, email string, passwordHash string) (*models.User, error)
+	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 }
 
 type Auth struct {
@@ -33,11 +33,11 @@ func New(log *logger.Logger, secretKey []byte, store Store) (*Auth, error) {
 	}, nil
 }
 
-func (a *Auth) GetUser(ctx context.Context, username string) (*types.User, error) {
+func (a *Auth) GetUser(ctx context.Context, username string) (*models.User, error) {
 	return a.store.GetUser(ctx, username)
 }
 
-func (a *Auth) GetUserByID(ctx context.Context, userID uint) (*types.User, error) {
+func (a *Auth) GetUserByID(ctx context.Context, userID uint) (*models.User, error) {
 	return a.store.GetUserByID(ctx, userID)
 }
 

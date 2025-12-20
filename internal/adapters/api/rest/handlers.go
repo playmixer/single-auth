@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	"github.com/playmixer/single-auth/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -14,7 +14,7 @@ func (s *Server) handlerLogin(c *gin.Context) {
 	var err error
 	var userID string
 	isAuth := false
-	var user *types.User
+	var user *models.User
 	userID, err = s.checkAuth(c)
 	var userIDInt int
 	if err == nil {
@@ -47,7 +47,7 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 		return
 	}
 
-	user := &types.User{}
+	user := &models.User{}
 	if user, err = s.auth.GetUser(c.Request.Context(), data.Username); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
 		return
@@ -69,8 +69,10 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 		})
 		return
 	}
-	c.SetCookie(CookieNameToken, token, 0, "/", c.Request.Host, true, true)
-
+	for _, domain := range s.cookieDomain {
+		s.log.Debug("save cookie", zap.String("host", domain), zap.String("token", token))
+		c.SetCookie(CookieNameToken, token, 0, "/", domain, s.cookieSecure, true)
+	}
 	// Если всё прошло успешно
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
@@ -79,7 +81,9 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 }
 
 func (s *Server) handlerLogut(c *gin.Context) {
-	c.SetCookie(CookieNameToken, "", 0, "/", c.Request.Host, true, true)
+	for _, domain := range s.cookieDomain {
+		c.SetCookie(CookieNameToken, "", 0, "/", domain, s.cookieSecure, true)
+	}
 
 	c.Redirect(http.StatusTemporaryRedirect, "/auth/login")
 }
@@ -87,7 +91,7 @@ func (s *Server) handlerLogut(c *gin.Context) {
 func (s *Server) handlerAPIUserAuthInfo(c *gin.Context) {
 	var err error
 	var userID string
-	var user *types.User
+	var user *models.User
 	userID, err = s.checkAuth(c)
 	var userIDInt int
 	if err == nil {
@@ -105,7 +109,7 @@ func (s *Server) handlerAPIUserAuthInfo(c *gin.Context) {
 
 	cookie, _ := c.Request.Cookie(CookieNameToken)
 	params, appLink, err := s.auth.GetPayloadUser(c.Query("appID"), map[string]string{
-		"username": user.Username,
+		"username": user.Login,
 		"email":    user.Email,
 		"token":    cookie.Value,
 	})

@@ -9,13 +9,20 @@ import (
 	"log"
 	"os"
 
+	"github.com/playmixer/single-auth/internal/adapters/config"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
 	"github.com/playmixer/single-auth/pkg/utils"
 )
 
 func main() {
+	cfg, err := config.Init()
+	if err != nil {
+		log.Fatal(fmt.Errorf("failed initialize config: %w", err))
+	}
+
 	isNew := flag.Bool("new", false, "new user")
 	username := flag.String("u", "", "username")
+	email := flag.String("e", "", "email")
 	password := flag.String("p", "", "password")
 
 	isGenKey := flag.Bool("genkey", false, "generate key pare")
@@ -25,7 +32,7 @@ func main() {
 
 	fmt.Println(*isNew, *username, *password)
 
-	store, err := storage.New()
+	store, err := storage.New(cfg.Store)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -43,7 +50,7 @@ func main() {
 			log.Fatal(errors.New("username or password not valid"))
 			return
 		}
-		_, err = store.CreateUser(context.Background(), *username, passwordHash)
+		_, err = store.CreateUser(context.Background(), *username, *email, passwordHash)
 		if err != nil {
 			log.Fatal(err)
 			return

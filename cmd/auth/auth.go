@@ -42,7 +42,7 @@ func run() error {
 		return fmt.Errorf("failed initialize logger: %w", err)
 	}
 
-	store, err := storage.New()
+	store, err := storage.New(cfg.Store)
 	if err != nil {
 		lgr.Error("failed initialize storage", zap.Error(err))
 		return fmt.Errorf("failed initialize storage: %w", err)
@@ -58,6 +58,7 @@ func run() error {
 		lgr,
 		rest.Addr(cfg.API.Addr),
 		rest.BaseURL(cfg.API.BaseURL),
+		rest.SetCookieDomain(cfg.API.CookieDomain.List()),
 	)
 
 	lgr.Info("Starting")

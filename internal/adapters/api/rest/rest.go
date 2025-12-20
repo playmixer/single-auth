@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ const (
 	ContentType     string = "Content-Type"     // заколовок типа контент
 	ApplicationJSON string = "application/json" // json контент
 
-	CookieNameToken string = "token" // поле хранения токента
+	CookieNameToken string = "singleauth_token" // поле хранения токента
 )
 
 var (
@@ -31,8 +31,8 @@ type AuthManager interface {
 	VerifyJWT(signedData string) (map[string]string, bool)
 	CreateJWT(map[string]string) (string, error)
 
-	GetUser(ctx context.Context, username string) (*types.User, error)
-	GetUserByID(ctx context.Context, userID uint) (*types.User, error)
+	GetUser(ctx context.Context, username string) (*models.User, error)
+	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 
 	GetPayloadUser(appID string, data map[string]string) (params, appLink string, err error)
 }
@@ -43,6 +43,8 @@ type Server struct {
 	baseURL       string
 	trustedSubnet string
 	secretKey     []byte
+	cookieDomain  []string
+	cookieSecure  bool
 	s             http.Server
 	tlsEnable     bool
 }
@@ -88,6 +90,18 @@ func SecretKey(secret []byte) Option {
 func HTTPSEnable(enable bool) Option {
 	return func(s *Server) {
 		s.tlsEnable = enable
+	}
+}
+
+func SetCookieDomain(domain []string) Option {
+	return func(s *Server) {
+		s.cookieDomain = domain
+	}
+}
+
+func SetCookieSecure(secure bool) Option {
+	return func(s *Server) {
+		s.cookieSecure = secure
 	}
 }
 

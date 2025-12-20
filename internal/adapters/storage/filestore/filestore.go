@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/apperror"
-	"github.com/playmixer/single-auth/internal/adapters/types"
+	"github.com/playmixer/single-auth/internal/adapters/storage/models"
+	"gorm.io/gorm"
 )
+
+type Config struct{}
 
 type userData struct {
 	ID           uint
-	Username     string
+	Login        string
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time
@@ -98,40 +101,45 @@ func (s *Filestore) loadUsers() error {
 	return nil
 }
 
-func (s *Filestore) CreateUser(ctx context.Context, username string, passwordHash string) (*types.User, error) {
-	_, err := s.GetUser(ctx, username)
+func (s *Filestore) CreateUser(ctx context.Context, login, email string, passwordHash string) (*models.User, error) {
+	_, err := s.GetUser(ctx, login)
 	if err == nil {
 		return nil, fmt.Errorf("user is exited")
 	}
 	user := userData{
 		ID:           uint(time.Now().Unix()),
-		Username:     username,
+		Login:        login,
+		Email:        email,
 		PasswordHash: passwordHash,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
 	s.dataUser = append(s.dataUser, user)
 
-	return &types.User{
-		ID:           user.ID,
-		Username:     user.Username,
+	return &models.User{
+		Login:        user.Login,
 		PasswordHash: user.PasswordHash,
 		Email:        user.Email,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		Model: gorm.Model{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		},
 	}, nil
 }
 
-func (s *Filestore) GetUser(ctx context.Context, username string) (*types.User, error) {
+func (s *Filestore) GetUser(ctx context.Context, login string) (*models.User, error) {
 	for _, user := range s.dataUser {
-		if user.Username == username {
-			return &types.User{
-				ID:           user.ID,
-				Username:     user.Username,
+		if user.Login == login {
+			return &models.User{
+				Login:        user.Login,
 				PasswordHash: user.PasswordHash,
 				Email:        user.Email,
-				CreatedAt:    user.CreatedAt,
-				UpdatedAt:    user.UpdatedAt,
+				Model: gorm.Model{
+					ID:        user.ID,
+					CreatedAt: user.CreatedAt,
+					UpdatedAt: user.UpdatedAt,
+				},
 			}, nil
 		}
 	}
@@ -139,16 +147,18 @@ func (s *Filestore) GetUser(ctx context.Context, username string) (*types.User, 
 	return nil, apperror.ErrNotFoundData
 }
 
-func (s *Filestore) GetUserByID(ctx context.Context, userID uint) (*types.User, error) {
+func (s *Filestore) GetUserByID(ctx context.Context, userID uint) (*models.User, error) {
 	for _, user := range s.dataUser {
 		if user.ID == userID {
-			return &types.User{
-				ID:           user.ID,
-				Username:     user.Username,
+			return &models.User{
+				Login:        user.Login,
 				PasswordHash: user.PasswordHash,
 				Email:        user.Email,
-				CreatedAt:    user.CreatedAt,
-				UpdatedAt:    user.UpdatedAt,
+				Model: gorm.Model{
+					ID:        user.ID,
+					CreatedAt: user.CreatedAt,
+					UpdatedAt: user.UpdatedAt,
+				},
 			}, nil
 		}
 	}
