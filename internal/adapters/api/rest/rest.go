@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
+	storeType "github.com/playmixer/single-auth/internal/adapters/storage/types"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -37,9 +38,17 @@ type AuthManager interface {
 	GetPayloadUser(appID string, data map[string]string) (params, appLink string, err error)
 }
 
+type Cache interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
+	GetH(ctx context.Context, key string, obj storeType.ObjInterface) (err error)
+	SetH(ctx context.Context, key string, value storeType.ObjInterface, ttl time.Duration) error
+}
+
 type Server struct {
 	log           *logger.Logger
 	auth          AuthManager
+	cache         Cache
 	baseURL       string
 	trustedSubnet string
 	secretKey     []byte
@@ -52,9 +61,10 @@ type Server struct {
 type Option func(s *Server)
 
 // New создает Server.
-func New(auth AuthManager, log *logger.Logger, options ...Option) *Server {
+func New(auth AuthManager, cache Cache, log *logger.Logger, options ...Option) *Server {
 	srv := &Server{
 		auth:      auth,
+		cache:     cache,
 		log:       log,
 		secretKey: []byte("rest_secret_key"),
 	}

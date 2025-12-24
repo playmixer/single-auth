@@ -18,6 +18,7 @@ type Config struct {
 	LogLevel  string `env:"LOG_LEVEL"`
 	SecretKey string `env:"AUTH_SECRET_KEY"`
 	Store     storage.Config
+	Cache     storage.ConfigCache
 }
 
 // Init инициализирует конфигурацию сервиса.
@@ -28,6 +29,7 @@ func Init() (*Config, error) {
 			File:     filestore.Config{},
 			Database: database.Config{},
 		},
+		Cache: storage.ConfigCache{},
 	}
 
 	_ = godotenv.Load(".env")

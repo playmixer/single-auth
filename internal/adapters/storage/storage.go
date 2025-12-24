@@ -3,10 +3,13 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/storage/database"
 	"github.com/playmixer/single-auth/internal/adapters/storage/filestore"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
+	"github.com/playmixer/single-auth/internal/adapters/storage/redisdb"
+	"github.com/playmixer/single-auth/internal/adapters/storage/types"
 )
 
 type Config struct {
@@ -41,4 +44,19 @@ func New(cfg Config) (Storage, error) {
 	}
 
 	return nil, fmt.Errorf("filed found type storage")
+}
+
+type ConfigCache struct {
+	Redis redisdb.Config
+}
+
+type Cache interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
+	GetH(ctx context.Context, key string, obj types.ObjInterface) (err error)
+	SetH(ctx context.Context, key string, value types.ObjInterface, ttl time.Duration) error
+}
+
+func NewCache(cfg ConfigCache) (Cache, error) {
+	return redisdb.New(cfg.Redis), nil
 }

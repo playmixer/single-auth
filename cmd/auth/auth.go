@@ -42,6 +42,12 @@ func run() error {
 		return fmt.Errorf("failed initialize logger: %w", err)
 	}
 
+	cache, err := storage.NewCache(cfg.Cache)
+	if err != nil {
+		lgr.Error("failed initialize cache", zap.Error(err))
+		return fmt.Errorf("failed initialize cache: %w", err)
+	}
+
 	store, err := storage.New(cfg.Store)
 	if err != nil {
 		lgr.Error("failed initialize storage", zap.Error(err))
@@ -55,6 +61,7 @@ func run() error {
 
 	httpServer := rest.New(
 		authManager,
+		cache,
 		lgr,
 		rest.Addr(cfg.API.Addr),
 		rest.BaseURL(cfg.API.BaseURL),

@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
@@ -36,10 +37,6 @@ func (s *Server) handlerLogin(c *gin.Context) {
 
 func (s *Server) handlerAPILogin(c *gin.Context) {
 	var err error
-	type tUser struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
 
 	var data tUser
 	if err := c.ShouldBindJSON(&data); err != nil {
@@ -48,10 +45,19 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 	}
 
 	user := &models.User{}
-	if user, err = s.auth.GetUser(c.Request.Context(), data.Username); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
-		return
+	key := "user:" + data.Username
+	if err = s.cache.GetH(c.Request.Context(), key, user); err != nil {
+		if user, err = s.auth.GetUser(c.Request.Context(), data.Username); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
+			return
+		}
+
+		err = s.cache.SetH(c.Request.Context(), key, user, time.Second*30)
+		if err != nil {
+			s.log.Error("failed save to cache", zap.String("key", key), zap.Error(err))
+		}
 	}
+	s.log.Debug("get user", zap.Any("user", *user))
 
 	// Сравниваем введённый пароль с хэшем
 	if ok := utils.CheckPasswordHash(user.PasswordHash, data.Password); !ok {
