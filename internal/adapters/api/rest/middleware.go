@@ -38,7 +38,7 @@ func (s *Server) middlewareCheckCookies() gin.HandlerFunc {
 		}
 		if err != nil || !ok {
 			s.log.Info("failed sign cookies", zap.Error(err))
-			c.Writer.WriteHeader(http.StatusInternalServerError)
+			c.Writer.WriteHeader(http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
