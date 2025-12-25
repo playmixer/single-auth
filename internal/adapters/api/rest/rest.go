@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,8 @@ const (
 	ApplicationJSON string = "application/json" // json контент
 
 	CookieNameToken string = "singleauth_token" // поле хранения токента
+
+	ttlCacheDefault = time.Second * 30
 )
 
 var (
@@ -34,8 +38,23 @@ type AuthManager interface {
 
 	GetUser(ctx context.Context, username string) (*models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
+	UpdUser(ctx context.Context, user *models.User) error
 
-	GetPayloadUser(appID string, data map[string]string) (params, appLink string, err error)
+	GetPayloadUser(ctx context.Context, appID string, data map[string]string) (params, appLink string, err error)
+}
+
+type AdminManager interface {
+	CreateNewUser(ctx context.Context, login, email, passwordHash string) (*models.User, error)
+	FindUsersByLogin(ctx context.Context, login string) ([]models.User, error)
+	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
+	RemoveUser(ctx context.Context, userID uint) error
+	UpdUser(ctx context.Context, user *models.User) error
+
+	CreateApplication(ctx context.Context, title, link string) (*models.Application, error)
+	GetApplication(ctx context.Context, appID string) (*models.Application, error)
+	FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error)
+	UpdateApplication(ctx context.Context, app *models.Application) error
+	RemoveApplication(ctx context.Context, appID string) error
 }
 
 type Cache interface {
@@ -48,6 +67,7 @@ type Cache interface {
 type Server struct {
 	log           *logger.Logger
 	auth          AuthManager
+	admin         AdminManager
 	cache         Cache
 	baseURL       string
 	trustedSubnet string
@@ -61,9 +81,10 @@ type Server struct {
 type Option func(s *Server)
 
 // New создает Server.
-func New(auth AuthManager, cache Cache, log *logger.Logger, options ...Option) *Server {
+func New(auth AuthManager, admin AdminManager, cache Cache, log *logger.Logger, options ...Option) *Server {
 	srv := &Server{
 		auth:      auth,
+		admin:     admin,
 		cache:     cache,
 		log:       log,
 		secretKey: []byte("rest_secret_key"),
@@ -117,7 +138,7 @@ func SetCookieSecure(secure bool) Option {
 
 func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
-	r.LoadHTMLGlob("templates/*")
+	r.LoadHTMLGlob("templates/**/*")
 	r.Use(
 		s.middlewareLogger(),
 	)
@@ -125,10 +146,27 @@ func (s *Server) SetupRouter() *gin.Engine {
 	r.GET("/auth/login", s.handlerLogin)
 	r.GET("/auth/logout", s.handlerLogut)
 	r.POST("/api/login", s.handlerAPILogin)
+
 	auth := r.Group("/")
+	auth.Use(s.middlewareCheckCookies())
 	{
-		auth.Use(s.middlewareCheckCookies())
+		auth.GET("/profile", s.handlerUserProfile)
+		auth.POST("/profile/password", s.handlerUserProfileChangePassword)
+
 		auth.GET("/api/user/authInfo", s.handlerAPIUserAuthInfo)
+	}
+	admin := r.Group("/admin")
+	admin.Use(s.middlewareCheckCookies(), s.middlewareIsAdmin())
+	{
+		admin.GET("/", s.handlerAdmin)
+		admin.GET("/users", s.handlerAdminUsers)
+		admin.POST("/users", s.handlerAdminNewUser)
+		admin.POST("/users/:userID/delete", s.handlerAdminRemoveUser)
+		admin.POST("/users/:userID/update", s.handlerAdminUpdUser)
+		admin.GET("/applications", s.handlerAdminApplications)
+		admin.POST("/applications", s.handlerAdminApplicationNew)
+		admin.POST("/applications/:appID/delete", s.handlerAdminRemoveApplication)
+		admin.POST("/applications/:appID/update", s.handlerAdminUpdApplication)
 
 	}
 
@@ -165,6 +203,7 @@ func (s *Server) checkAuth(c *gin.Context) (userID string, err error) {
 	cookieUserID, err := c.Request.Cookie(CookieNameToken)
 	if err == nil {
 		tknData, ok = s.auth.VerifyJWT(cookieUserID.Value)
+		s.log.Debug("cookie", zap.String("value", cookieUserID.Value), zap.Any("params", tknData))
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed reade user cookie: %w %w", errInvalidAuthCookie, err)
@@ -172,10 +211,50 @@ func (s *Server) checkAuth(c *gin.Context) (userID string, err error) {
 	if !ok {
 		return "", fmt.Errorf("unverify usercookie: %w", errInvalidAuthCookie)
 	}
-	fmt.Println(cookieUserID.Value)
 	if userID, ok = tknData["userID"]; ok {
 		return userID, nil
 	}
 
 	return "", fmt.Errorf("failed to read user id from token: %w", errInvalidAuthCookie)
+}
+
+func (s *Server) isAuthenticate(c *gin.Context) (isAuth bool, user *models.User, err error) {
+	userID, err := s.checkAuth(c)
+	var userIDInt int
+	if err == nil {
+		userIDInt, err = strconv.Atoi(userID)
+	}
+	if err == nil {
+		key := "userid:" + userID
+		if err = s.cache.GetH(c.Request.Context(), key, user); err != nil {
+			user, err = s.auth.GetUserByID(c.Request.Context(), uint(userIDInt))
+			if err != nil {
+				isAuth = false
+				return
+			}
+
+			err = s.cache.SetH(c.Request.Context(), key, user, time.Minute)
+			if err != nil {
+				s.log.Error("failed save user to cache", zap.Error(err))
+			}
+		}
+	}
+	if err == nil {
+		isAuth = true
+	}
+	return
+}
+
+func empty[T string | int](s T) bool {
+	val := reflect.ValueOf(s)
+
+	switch val.Kind() {
+	case reflect.String:
+		return val.String() == ""
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return val.Int() == 0
+	default:
+		// Для других типов данных можно добавить дополнительную логику
+		return false
+	}
 }

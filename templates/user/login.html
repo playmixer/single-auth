@@ -1,4 +1,4 @@
-{{ define "login.html" }}
+{{ define "user/login.html" }}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,6 +8,7 @@
     <style>
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -57,8 +58,11 @@
         </form>
     </div>
     {{ else }}
+    {{ if .user.IsAdmin }}
+    <div style="position: absolute;right: 5px;top: 5px;"><a href="/admin" style="color: red;">admin</a></div>
+    {{ end }}
     <div class="auth-form">
-        <h2>Приветствую <b>{{ .user.Login }}</b></h2>
+        <h2>Приветствую <b><a href="/profile">{{ .user.Login }}</b></a></h2>
         <span id="authError" style="color: darkred;"></span>
         <br><a href="/auth/logout">Выйти</a>
     </div>
@@ -95,19 +99,6 @@
             authError.innerHTML
             const data = await response.json()
             if (response.status == 200) {
-                // if (callBack) {
-                //     const payload = JSON.stringify({
-                //         token: data.token
-                //     })
-                //     const url = new URL(callBack);    
-                //     const encData = btoa(payload)
-
-                //     url.searchParams.append('payload', encData);
-                //     const newUrl = url.toString();
-
-                //     window.location.href = newUrl
-                // } else {
-                // }
                 console.log("reload")
                 window.location.reload()
             } else {

@@ -1,0 +1,289 @@
+{{ define "admin/applications.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            height: 40px;
+        }
+        .btnlink {
+            color: black;
+            cursor: pointer;
+            padding: 5px;
+            /* height: 24px; */
+            border: none;
+            border-radius: 1px;
+            font-size: 12px;
+        }
+        .btnlink-danger {
+            color: white;
+            background-color: crimson;
+        }
+        .btnlink-primary {
+            color: white;
+            background-color: #007bff;
+        }
+        .hidden {
+            display: none;
+        }
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            display: inline;
+            margin-right: 20px;
+        }
+        a {
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+        }
+        .breadcrumb {
+            display: flex;
+            justify-content: flex-start;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .breadcrumb li {
+            display: inline;
+            margin-right: 10px;
+        }
+        .breadcrumb li::after {
+            content: '>';
+            margin: 0 10px;
+        }
+        .breadcrumb li:last-child::after {
+            content: none;
+        }
+        .breadcrumb li a {
+            text-decoration: none;
+            color: #333;
+        }
+        .search form {
+            display: flex;
+            width: 100%;
+        }
+        .search form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .search form input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search form input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            height: 40px;
+        }
+        .search {
+            width: 100%;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .search form {
+            display: flex;
+            flex-direction: column;
+        }
+        .search_input {
+            width: 100%;
+            position: relative;;
+        }
+        .search_input input[type="submit"] {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 100px;
+            height: 36px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .form-container {
+            margin-bottom: 30px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .form-container.active {
+            max-height: 500px;
+        }
+        .form-newuser {
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-newuser label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-newuser input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-newuser input[type="submit"] {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li><a href="/admin">Админ панель</a></li>
+    <li>Приложения</li>
+</ul>
+
+<h1>Приложения</h1>
+
+<ul>
+    <li><a href="/admin/users">Пользователи</a></li>
+    <li><a href="/admin/applications">Приложения</a></li>
+</ul>
+
+<div class="search">
+    <form action="/admin/applications" method="GET">
+        <label for="search_query">Найти по названию:</label>
+        <div class="search_input">
+            <input type="text" id="search_query" name="search_query" value="{{ .search }}" required>
+            <input type="submit" value="Найти">
+        </div>
+    </form>
+</div>
+<div>
+    {{ if .error }}
+    <span>{{ .error }}</span>
+    {{ end }}
+
+    <div style="display: flex; flex-direction: row; justify-content: end;">
+        <button class="btn" onclick="toggleForm(this);" style="width: 200px;">Добавить приложение</button>
+    </div>
+    <div class="form-container" id="form-container">
+        <form action="/admin/applications" method="post" class="form-newuser">
+            <label for="title">Название:</label>
+            <input type="text" id="title" name="title" required>
+
+            <label for="link">Ссылка:</label>
+            <input type="text" id="link" name="link" required>
+
+            <input type="submit" value="Создать">
+        </form>
+    </div>
+
+    <table>
+        <tr>
+            <th>Имя</th>
+            <th>Ссылка авторизации</th>
+            <th>App auth</th>
+            <th>Действия</th>
+        </tr>
+        {{ $baseURL := .baseURL }}
+        {{ range .applications }}
+        <tr>
+            <td>{{ .Title }}</td>
+            <td>{{ .AuthLink }}</td>
+            <td><a class="btnlink btnlink-primary" name="copyLink" data-link="{{ $baseURL }}/auth/login?appID={{ .ID }}">Copy link</a></td>
+            <td style="display: flex; flex-direction: row;">
+                <a href="#" class="btnlink btnlink-primary" name="click_app_upd" data-appid="{{ .ID }}">Редактировать</a> | 
+                <form action="/admin/applications/{{ .ID }}/delete" method="post" name="form_app_delete">
+                    <input type="submit" class="btnlink btnlink-danger" value="Удалить">
+                </form>
+            </td>
+        </tr>
+        <tr class="hidden" id="app_upd_{{ .ID }}">
+            <td colspan="5">
+                <form action="/admin/applications/{{ .ID }}/update" method="post" class="form-newuser">
+                    <input type="hidden" name="id" value="{{ .ID }}" required>
+
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" value="{{ .Title }}" required>
+
+                    <label for="title">Auth link:</label>
+                    <input type="text" id="link" name="link" value="{{ .AuthLink }}" required>
+
+                    <input type="submit" value="Сохранить">
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+    </table>
+</div>
+<script>
+    const onClickUserUpd = document.querySelectorAll("[name='click_app_upd']")
+    if (onClickUserUpd) {
+        for (var i = 0; i < onClickUserUpd.length; i++) {
+            onClickUserUpd[i].addEventListener("click", function(e) {
+                const appID = e.target.dataset.appid
+                const formUpd = document.querySelector(`#app_upd_${appID}`)
+                formUpd.classList.toggle("hidden")
+            })
+        }
+    }
+    function toggleForm(btn) {
+        const formContainer = document.querySelector("#form-container");
+        formContainer.classList.toggle('active');
+    }
+    async function copyToClipboard(newClip) {
+        await navigator.clipboard.writeText(newClip)
+    }
+    const copyLinks = document.querySelectorAll("[name='copyLink']")
+    if (copyLinks) {
+        for (var i = 0; i < copyLinks.length; i++) {
+            copyLinks[i].addEventListener("click", async function(e) {
+                e = e.target;
+                await copyToClipboard(e.dataset.link)
+            })
+        }
+    }
+</script>
+</body>
+</html>
+{{ end }}

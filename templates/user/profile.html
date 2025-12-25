@@ -1,0 +1,113 @@
+{{ define "user/profile.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о пользователе</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .user-info {
+            margin-bottom: 20px;
+        }
+        .user-info h2 {
+            color: #333;
+        }
+        .user-info p {
+            color: #666;
+        }
+        form {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        form input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        form input[type="submit"] {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        form .error {
+            color: crimson;
+        }
+        .form-password {
+            max-width: 400px;
+        }
+        .breadcrumb {
+            display: flex;
+            justify-content: flex-start;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .breadcrumb li {
+            display: inline;
+            margin-right: 10px;
+        }
+        .breadcrumb li::after {
+            content: '>';
+            margin: 0 10px;
+        }
+        .breadcrumb li:last-child::after {
+            content: none;
+        }
+        .breadcrumb li a {
+            text-decoration: none;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li>Профиль</li>
+</ul>
+
+<div class="user-info">
+    <h2>Информация о пользователе</h2>
+    <p>Имя: {{ .user.Login }}</p>
+    <p>Email: {{ .user.Email }}</p>
+    <p>Роль: Администратор</p>
+</div>
+
+<div class="form-password">
+    <form action="/profile/password" method="post">
+        <label for="current_password">Текущий пароль:</label>
+        <input type="password" id="current_password" name="current_password" required>
+
+        <label for="new_password">Новый пароль:</label>
+        <input type="password" id="new_password" name="new_password" required>
+
+        <label for="confirm_password">Подтвердите пароль:</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
+
+        <span class="error"></span>
+        <input type="submit" value="Сохранить изменения">
+    </form>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorString = urlParams.get('error');
+    if (errorString) {
+        error = document.querySelector("[class='error']")
+        error.innerHTML = errorString
+    }
+</script>
+</body>
+</html>
+{{ end }}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/apperror"
@@ -20,6 +21,7 @@ type userData struct {
 	Login        string
 	Email        string
 	PasswordHash string
+	IsAdmin      bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -164,4 +166,78 @@ func (s *Filestore) GetUserByID(ctx context.Context, userID uint) (*models.User,
 	}
 
 	return nil, apperror.ErrNotFoundData
+}
+
+func (s *Filestore) UpdUser(ctx context.Context, user *models.User) error {
+	for i, u := range s.dataUser {
+		if u.ID == user.ID {
+			s.dataUser[i] = userData{
+				ID:           user.ID,
+				Login:        user.Login,
+				Email:        user.Email,
+				PasswordHash: user.PasswordHash,
+				CreatedAt:    user.CreatedAt,
+				UpdatedAt:    time.Now(),
+			}
+			return nil
+		}
+	}
+
+	return apperror.ErrNotFoundData
+}
+
+func (s *Filestore) FindUsersByLogin(ctx context.Context, login string) ([]models.User, error) {
+	users := []models.User{}
+
+	for _, u := range s.dataUser {
+		if strings.Contains(u.Login, login) {
+			users = append(users, models.User{
+				Model: gorm.Model{
+					ID:        u.ID,
+					CreatedAt: u.CreatedAt,
+					UpdatedAt: u.UpdatedAt,
+				},
+				Login:        u.Login,
+				Email:        u.Email,
+				PasswordHash: "",
+				IsAdmin:      u.IsAdmin,
+			})
+		}
+	}
+
+	return users, nil
+}
+
+func (s *Filestore) RemoveUser(ctx context.Context, userID uint) error {
+	for i, u := range s.dataUser {
+		if u.ID == userID {
+			s.dataUser = append(s.dataUser[:i], s.dataUser[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("user not found by id: %v", userID)
+}
+
+func (s *Filestore) CreateApplication(ctx context.Context, title, link string) (*models.Application, error) {
+	return nil, errors.New("method not implemented")
+}
+
+func (s *Filestore) UpdateApplication(ctx context.Context, app *models.Application) error {
+	return errors.New("method not implemented")
+}
+
+func (s *Filestore) RemoveApplication(ctx context.Context, appID string) error {
+	return errors.New("method not implemented")
+}
+
+func (s *Filestore) GetApplication(ctx context.Context, appID string) (*models.Application, error) {
+	return nil, errors.New("method not implemented")
+}
+
+func (s *Filestore) GetApplicationByTitle(ctx context.Context, title string) (*models.Application, error) {
+	return nil, errors.New("method not implemented")
+}
+
+func (s *Filestore) FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error) {
+	return nil, errors.New("method not implemented")
 }

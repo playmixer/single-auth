@@ -13,6 +13,7 @@ import (
 	"github.com/playmixer/single-auth/internal/adapters/api/rest"
 	"github.com/playmixer/single-auth/internal/adapters/config"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
+	"github.com/playmixer/single-auth/internal/core/admin"
 	"github.com/playmixer/single-auth/internal/core/auth"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
@@ -59,8 +60,11 @@ func run() error {
 		return fmt.Errorf("failed initializa auth manager: %w", err)
 	}
 
+	adminManager := admin.New(store, lgr)
+
 	httpServer := rest.New(
 		authManager,
+		adminManager,
 		cache,
 		lgr,
 		rest.Addr(cfg.API.Addr),

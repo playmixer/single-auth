@@ -15,19 +15,20 @@ type Store interface {
 	GetUser(ctx context.Context, username string) (*models.User, error)
 	CreateUser(ctx context.Context, username, email string, passwordHash string) (*models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
+
+	UpdUser(ctx context.Context, user *models.User) error
+	GetApplication(ctx context.Context, appID string) (*models.Application, error)
 }
 
 type Auth struct {
 	log       *logger.Logger
 	secretKey []byte
 	store     Store
-	app       *ApplicationAuth
 }
 
 func New(log *logger.Logger, secretKey []byte, store Store) (*Auth, error) {
 	return &Auth{
 		store:     store,
-		app:       InitApplicationAuthSettings(),
 		secretKey: secretKey,
 		log:       log,
 	}, nil
@@ -41,8 +42,17 @@ func (a *Auth) GetUserByID(ctx context.Context, userID uint) (*models.User, erro
 	return a.store.GetUserByID(ctx, userID)
 }
 
-func (a *Auth) GetPayloadUser(appID string, data map[string]string) (params, appLink string, err error) {
-	app, err := a.app.GetAppByID(appID)
+func (a *Auth) UpdUser(ctx context.Context, user *models.User) error {
+	return a.store.UpdUser(ctx, user)
+}
+
+type Payload struct {
+	Params string
+	Link   string
+}
+
+func (a *Auth) GetPayloadUser(ctx context.Context, appID string, data map[string]string) (params, appLink string, err error) {
+	app, err := a.getAppByID(ctx, appID)
 	if err != nil {
 		return "", "", fmt.Errorf("application not registered: %w", err)
 	}
@@ -65,4 +75,8 @@ func (a *Auth) VerifyJWT(signedData string) (map[string]string, bool) {
 // CreateJWT - Создает JWT ключ и записывает в него ID пользователя.
 func (a *Auth) CreateJWT(data map[string]string) (string, error) {
 	return authtools.CreateJWT(a.secretKey, data)
+}
+
+func (a *Auth) getAppByID(ctx context.Context, appID string) (*models.Application, error) {
+	return a.store.GetApplication(ctx, appID)
 }

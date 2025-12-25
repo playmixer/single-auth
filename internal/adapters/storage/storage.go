@@ -19,9 +19,22 @@ type Config struct {
 }
 
 type Storage interface {
+	//Auth
 	GetUser(ctx context.Context, username string) (*models.User, error)
 	CreateUser(ctx context.Context, username string, email string, passwordHash string) (*models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
+	UpdUser(ctx context.Context, user *models.User) error
+
+	//Admin
+	FindUsersByLogin(ctx context.Context, login string) ([]models.User, error)
+	//CreateUser
+	RemoveUser(ctx context.Context, userID uint) error
+	CreateApplication(ctx context.Context, title, link string) (*models.Application, error)
+	GetApplication(ctx context.Context, appID string) (*models.Application, error)
+	UpdateApplication(ctx context.Context, app *models.Application) error
+	RemoveApplication(ctx context.Context, appID string) error
+	GetApplicationByTitle(ctx context.Context, title string) (*models.Application, error)
+	FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error)
 
 	Close() error
 }

@@ -31,29 +31,55 @@ func (s *Server) middlewareCheckCookies() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ok bool
 		var userCookie *http.Cookie
+		// var data = make(map[string]string)
+		userCookie, err := c.Request.Cookie(CookieNameToken)
+		if err == nil {
+			_, ok = s.auth.VerifyJWT(userCookie.Value)
+		}
+		if err != nil || !ok {
+			s.log.Info("failed sign cookies", zap.Error(err))
+			c.Writer.WriteHeader(http.StatusInternalServerError)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func (s *Server) middlewareIsAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ok bool
 		var data = make(map[string]string)
+
 		userCookie, err := c.Request.Cookie(CookieNameToken)
 		if err == nil {
 			data, ok = s.auth.VerifyJWT(userCookie.Value)
 		}
-		if err != nil || !ok {
-			data["updTime"] = strconv.Itoa(int(time.Now().Unix()))
-			signedCookie, err := s.auth.CreateJWT(data)
+		if !ok {
+			c.Writer.WriteHeader(http.StatusForbidden)
+			c.Abort()
+			return
+		}
+
+		if sIsAdmin, ok := data["isAdmin"]; !ok {
+			c.Writer.WriteHeader(http.StatusForbidden)
+			c.Abort()
+			return
+		} else {
+			isAdmin, err := strconv.ParseBool(sIsAdmin)
 			if err != nil {
-				s.log.Info("failed sign cookies", zap.Error(err))
-				c.Writer.WriteHeader(http.StatusInternalServerError)
+				c.Writer.WriteHeader(http.StatusForbidden)
 				c.Abort()
 				return
 			}
-			userCookie = &http.Cookie{
-				Name:  CookieNameToken,
-				Value: signedCookie,
-				Path:  "/",
+			if !isAdmin {
+				c.Writer.WriteHeader(http.StatusForbidden)
+				c.Abort()
+				return
 			}
-			c.Request.AddCookie(userCookie)
 		}
 
-		http.SetCookie(c.Writer, userCookie)
 		c.Next()
 	}
 }

@@ -1,0 +1,353 @@
+{{ define "admin/users.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            height: 40px;
+        }
+        .btnlink {
+            color: black;
+            cursor: pointer;
+            padding: 5px;
+            /* height: 24px; */
+            border: none;
+            border-radius: 1px;
+            font-size: 12px;
+        }
+        .btnlink-danger {
+            color: white;
+            background-color: crimson;
+        }
+        .btnlink-primary {
+            color: white;
+            background-color: #007bff;
+        }
+        .hidden {
+            display: none;
+        }
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            display: inline;
+            margin-right: 20px;
+        }
+        a {
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+        }
+        .breadcrumb {
+            display: flex;
+            justify-content: flex-start;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .breadcrumb li {
+            display: inline;
+            margin-right: 10px;
+        }
+        .breadcrumb li::after {
+            content: '>';
+            margin: 0 10px;
+        }
+        .breadcrumb li:last-child::after {
+            content: none;
+        }
+        .breadcrumb li a {
+            text-decoration: none;
+            color: #333;
+        }
+        .search form {
+            display: flex;
+            width: 100%;
+        }
+        .search form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .search form input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search form input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            height: 40px;
+        }
+        .search {
+            width: 100%;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .search form {
+            display: flex;
+            flex-direction: column;
+        }
+        .search_input {
+            width: 100%;
+            position: relative;;
+        }
+        .search_input input[type="submit"] {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 100px;
+            height: 36px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .form-container {
+            margin-bottom: 30px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .form-container.active {
+            max-height: 500px;
+        }
+        .form-newuser {
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-newuser label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-newuser input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-newuser input[type="submit"] {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        /* Стили для модального окна */
+        dialog[open] {
+            display: block !important;
+        }
+        .modal {
+            display: none; /* Скрываем окно по умолчанию */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li><a href="/admin">Админ панель</a></li>
+    <li>Пользователи</li>
+</ul>
+
+<h1>Пользователи</h1>
+
+<ul>
+    <li><a href="/admin/users">Пользователи</a></li>
+    <li><a href="/admin/applications">Приложения</a></li>
+</ul>
+
+<div class="search">
+    <form action="/admin/users" method="GET">
+        <label for="search_query">Найти по логину пользователя:</label>
+        <div class="search_input">
+            <input type="text" id="search_query" name="search_query" value="{{ .search }}" required>
+            <input type="submit" value="Найти">
+        </div>
+    </form>
+</div>
+<div>
+    {{ if .error }}
+    <span style="color: crimson;">{{ .error }}</span>
+    {{ end }}
+
+    <div style="display: flex; flex-direction: row; justify-content: end;">
+        <button class="btn" onclick="toggleForm(this);" style="width: 200px;">Добавить пользователя</button>
+    </div>
+    <div class="form-container" id="form-container">
+        <form action="#" method="post" class="form-newuser">
+            <label for="login">Login:</label>
+            <input type="text" id="login" name="login" required>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
+
+            <label for="password2">Повторить пароль:</label>
+            <input type="password" id="password2" name="password2" required>
+
+            <input type="submit" value="Создать">
+        </form>
+    </div>
+
+    <table>
+        <tr>
+            <th>Имя</th>
+            <th>Email</th>
+            <th>Админ</th>
+            <th>Роль</th>
+            <th>Действия</th>
+        </tr>
+        {{ range .users }}
+        <tr>
+            <td>{{ .Login }}</td>
+            <td>{{ .Email }}</td>
+            <td>{{ if .IsAdmin }}Да{{ end }}</td>
+            <td>USER</td>
+            <td style="display: flex; flex-direction: row;">
+                <a href="#" class="btnlink btnlink-primary" name="click_user_upd" data-userid="{{ .ID }}">Редактировать</a> | 
+                <form action="/admin/users/{{ .ID }}/delete" method="post" name="form_user_delete">
+                    <input type="submit" class="btnlink btnlink-danger" value="Удалить">
+                </form>
+            </td>
+        </tr>
+        <tr class="hidden" id="user_upd_{{ .ID }}">
+            <td colspan="5">
+                <form action="/admin/users/{{ .ID }}/update" method="post" class="form-newuser">
+                    <input type="hidden" name="id" value="{{ .ID }}" required>
+                    <input type="hidden" name="login" value="{{ .Login }}" required>
+
+                    <label for="emailu">Email:</label>
+                    <input type="email" id="emailu" name="email" value="{{ .Email }}" required>
+
+                    <label for="passwordu">Пароль:</label>
+                    <input type="password" id="passwordu" name="password">
+
+                    <label for="password2u">Повторить пароль:</label>
+                    <input type="password" id="password2u" name="password2">
+
+                    <input type="submit" value="Сохранить">
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+    </table>
+</div>
+<dialog class="modal">
+    <div class="modal-content">
+        <p>Вы уверены?</p>
+        <button type="button" class="btnlink btnlink-danger" onclick="closeModal()" aria-label="Close modal">Отмена</button>
+        <button type="button" class="btnlink btnlink-primary" onclick="confirmSubmit()">Да</button>
+    </div>
+</dialog>
+<script>
+    const onClickUserUpd = document.querySelectorAll("[name='click_user_upd']")
+    if (onClickUserUpd) {
+        for (var i = 0; i < onClickUserUpd.length; i++) {
+            onClickUserUpd[i].addEventListener("click", function(e) {
+                const userID = e.target.dataset.userid
+                const formUpd = document.querySelector(`#user_upd_${userID}`)
+                formUpd.classList.toggle("hidden")
+            })
+        }
+    }
+    function toggleForm(btn) {
+        const formContainer = document.querySelector("#form-container");
+        formContainer.classList.toggle('active');
+    }
+
+    const formsUserDel = document.querySelectorAll('[name="form_user_delete"]');
+    const modal = document.querySelector('.modal');
+
+    // Обработчик события отправки формы
+    let form = null
+    if (formsUserDel) {
+        for (var i = 0; i < formsUserDel.length; i++) {
+            formsUserDel[i].addEventListener('submit', function(useForm) {
+                return function() {
+                    form = useForm
+                    event.preventDefault(); // Предотвращаем стандартную отправку формы
+                    modal.showModal(); // Открываем модальное окно
+                }
+            }(formsUserDel[i]));
+        }
+    }
+    function confirmSubmit() {
+        modal.close(); // Закрываем модальное окно
+        form.submit(); // Отправляем форму
+    }
+    function closeModal() {
+        modal.close(); // Закрываем модальное окно
+    }
+</script>
+</body>
+</html>
+{{ end }}
