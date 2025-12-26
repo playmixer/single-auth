@@ -63,6 +63,7 @@
     {{ end }}
     <div class="auth-form">
         <h2>Приветствую <b><a href="/profile">{{ .user.Login }}</b></a></h2>
+        <a href="#" id="authLink"></a><br>
         <span id="authError" style="color: darkred;"></span>
         <br><a href="/auth/logout">Выйти</a>
     </div>
@@ -120,11 +121,24 @@
             })
             const data = await response.json()
             if (response.status == 200) {
+                const authLink = document.querySelector("#authLink")
                 const url = new URL(data.appLink)
                 url.searchParams.append("paramsURI", data.params)
                 const newURL = url.toString()
 
-                window.location.href = newURL
+                authLink.href = newURL
+                let t = 3
+                authLink.innerHTML = `Перейти в приложение (${t} сек)`
+                await function(ttl) {
+                    setInterval(function() {
+                        console.log(ttl)
+                        authLink.innerHTML = `Перейти в приложение (${ttl} сек)`
+                        ttl = ttl - 1
+                    }, 1000)
+                }(t)
+                setTimeout(function() {
+                    window.location.href = newURL
+                }, 2000)
             } else {
                 authError.innerHTML = data.error
             }
