@@ -131,14 +131,13 @@
                 authLink.innerHTML = `Перейти в приложение (${t} сек)`
                 await function(ttl) {
                     setInterval(function() {
-                        console.log(ttl)
                         authLink.innerHTML = `Перейти в приложение (${ttl} сек)`
                         ttl = ttl - 1
                     }, 1000)
                 }(t)
                 setTimeout(function() {
                     window.location.href = newURL
-                }, 2000)
+                }, 3000)
             } else {
                 authError.innerHTML = data.error
             }
