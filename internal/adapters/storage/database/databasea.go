@@ -51,6 +51,7 @@ func (s *Storage) migration() error {
 	if err := s.db.AutoMigrate(
 		&models.User{},
 		&models.Application{},
+		&models.Session{},
 	); err != nil {
 		return fmt.Errorf("failed migrations: %w", err)
 	}
@@ -197,4 +198,52 @@ func (s *Storage) FindApplicationByTitle(ctx context.Context, title string) ([]m
 	}
 
 	return apps, nil
+}
+
+func (s *Storage) CreateRefreshToken(ctx context.Context, userID uint, token string, expiredDate time.Time) error {
+	session := &models.Session{
+		UserID:      userID,
+		Token:       token,
+		ExpiredDate: expiredDate,
+	}
+
+	err := s.db.WithContext(ctx).Create(session).Error
+	if err != nil {
+		return fmt.Errorf("failed create refresh token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) RemoveRefreshToken(ctx context.Context, refresh string) error {
+	err := s.db.WithContext(ctx).Where("token =?", refresh).Delete(&models.Session{}).Error
+	if err != nil {
+		return fmt.Errorf("failed remove refresh token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) getSessionByToken(ctx context.Context, refresh string) (*models.Session, error) {
+	session := &models.Session{}
+	err := s.db.WithContext(ctx).Where("token = ?", refresh).First(session).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed getting token: %w", err)
+	}
+
+	return session, nil
+}
+
+func (s *Storage) UpdRefreshToken(ctx context.Context, oldRefresh, newRefresh string) error {
+	session, err := s.getSessionByToken(ctx, oldRefresh)
+	if err != nil {
+		return fmt.Errorf("failed getting session by token: %w", err)
+	}
+	session.Token = newRefresh
+	err = s.db.WithContext(ctx).Where("token = ?", oldRefresh).Updates(session).Error
+	if err != nil {
+		return fmt.Errorf("failed update refresh token: %w", err)
+	}
+
+	return nil
 }

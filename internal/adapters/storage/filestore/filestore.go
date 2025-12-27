@@ -241,3 +241,15 @@ func (s *Filestore) GetApplicationByTitle(ctx context.Context, title string) (*m
 func (s *Filestore) FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error) {
 	return nil, errors.New("method not implemented")
 }
+
+func (s *Filestore) CreateRefreshToken(ctx context.Context, userID uint, token string, expiredDate time.Time) error {
+	return errors.New("method not implemented")
+}
+
+func (s *Filestore) RemoveRefreshToken(ctx context.Context, refresh string) error {
+	return errors.New("method not implemented")
+}
+
+func (s *Filestore) UpdRefreshToken(ctx context.Context, oldRefresh, newRefresh string) error {
+	return errors.New("method not implemented")
+}

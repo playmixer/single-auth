@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -8,11 +9,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
-	"github.com/playmixer/single-auth/pkg/utils"
+	"github.com/playmixer/single-auth/pkg/authtools"
 	"go.uber.org/zap"
 )
 
 func (s *Server) handlerLogin(c *gin.Context) {
+	s.middlewareCheckCookies()(c)
 	isAuth, user, _ := s.isAuthenticate(c)
 
 	c.HTML(http.StatusOK, "user/login.html", gin.H{
@@ -47,14 +49,15 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 	s.log.Debug("get user", zap.Any("user", *user))
 
 	// Сравниваем введённый пароль с хэшем
-	if ok := utils.CheckPasswordHash(user.PasswordHash, data.Password); !ok {
+	if ok := authtools.CheckPasswordHash(user.PasswordHash, data.Password); !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "incorrect username or password"})
 		return
 	}
 
 	token, err := s.auth.CreateJWT(map[string]string{
-		"userID":  strconv.Itoa(int(user.ID)),
-		"isAdmin": strconv.FormatBool(user.IsAdmin),
+		"userID":      strconv.Itoa(int(user.ID)),
+		"isAdmin":     strconv.FormatBool(user.IsAdmin),
+		"expiredUnix": strconv.FormatInt(time.Now().Unix()+int64(s.jwtAccessTokenTTL), 10),
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -63,9 +66,18 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 		})
 		return
 	}
+	refresh, err := s.auth.GenRefreshToken(c.Request.Context(), user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed create token",
+			"message": err.Error(),
+		})
+		return
+	}
 	for _, domain := range s.cookieDomain {
-		s.log.Debug("save cookie", zap.String("host", domain), zap.String("token", token))
-		c.SetCookie(CookieNameToken, token, 0, "/", domain, s.cookieSecure, true)
+		s.log.Debug("save cookie", zap.String("host", domain), zap.String("token", token), zap.String("refresh", refresh))
+		c.SetCookie(CookieJWT, token, s.cookieLifeTime, "/", domain, s.cookieSecure, true)
+		c.SetCookie(CookieRefreshToken, refresh, s.cookieLifeTime, "/", domain, s.cookieSecure, true)
 	}
 	// Если всё прошло успешно
 	c.JSON(http.StatusOK, gin.H{
@@ -75,8 +87,23 @@ func (s *Server) handlerAPILogin(c *gin.Context) {
 }
 
 func (s *Server) handlerLogut(c *gin.Context) {
+	userRefresh, err := c.Request.Cookie(CookieRefreshToken)
+	if err != nil {
+		s.log.Error("failed get cookie refresh", zap.Error(err))
+	}
+	if err == nil && userRefresh.Value != "" {
+		go func(refresh string) {
+			err = s.auth.Logout(context.Background(), refresh)
+			if err != nil {
+				s.log.Error("failed logout", zap.Error(err), zap.String("refresh", refresh))
+				return
+			}
+		}(userRefresh.Value)
+	}
+
 	for _, domain := range s.cookieDomain {
-		c.SetCookie(CookieNameToken, "", 0, "/", domain, s.cookieSecure, true)
+		c.SetCookie(CookieJWT, "", s.cookieLifeTime, "/", domain, s.cookieSecure, true)
+		c.SetCookie(CookieRefreshToken, "", s.cookieLifeTime, "/", domain, s.cookieSecure, true)
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, "/auth/login")
@@ -103,7 +130,7 @@ func (s *Server) handlerAPIUserAuthInfo(c *gin.Context) {
 		return
 	}
 
-	cookie, _ := c.Request.Cookie(CookieNameToken)
+	cookie, _ := c.Request.Cookie(CookieJWT)
 	key := "apppayload:appid:" + appID + ":user:" + strconv.Itoa(int(user.ID))
 	payload := &Payload{}
 	if err := s.cache.GetH(c.Request.Context(), key, payload); err != nil {
@@ -148,11 +175,11 @@ func (s *Server) handlerUserProfileChangePassword(c *gin.Context) {
 	passNew := c.PostForm("new_password")
 	passNew2 := c.PostForm("confirm_password")
 
-	if !utils.CheckPasswordHash(user.PasswordHash, passCur) {
+	if !authtools.CheckPasswordHash(user.PasswordHash, passCur) {
 		c.Redirect(http.StatusMovedPermanently, "/profile?error=incorrect_current_password")
 		return
 	}
-	if utils.CheckPasswordHash(user.PasswordHash, passNew) {
+	if authtools.CheckPasswordHash(user.PasswordHash, passNew) {
 		c.Redirect(http.StatusMovedPermanently, "/profile?error=new_password_is_equal_new_password")
 		return
 	}
@@ -160,7 +187,7 @@ func (s *Server) handlerUserProfileChangePassword(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/profile?error=new_passwored_not_equal")
 		return
 	}
-	user.PasswordHash, err = utils.HashPassword(passNew)
+	user.PasswordHash, err = authtools.HashPassword(passNew)
 	if err != nil {
 		s.log.Error("failed hashing password", zap.Error(err))
 		c.Redirect(http.StatusMovedPermanently, "/profile?error=incorrect_password")
@@ -227,7 +254,7 @@ func (s *Server) handlerAdminNewUser(c *gin.Context) {
 		return
 	}
 
-	passwordHash, err := utils.HashPassword(password)
+	passwordHash, err := authtools.HashPassword(password)
 	if err != nil {
 		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=failed_to_hash_password")
 		return
@@ -283,7 +310,7 @@ func (s *Server) handlerAdminUpdUser(c *gin.Context) {
 			return
 		}
 
-		passwordHash, err = utils.HashPassword(password)
+		passwordHash, err = authtools.HashPassword(password)
 		if err != nil {
 			c.Redirect(http.StatusMovedPermanently, "/admin/users?error=failed_to_hash_password&search_query="+login)
 			return

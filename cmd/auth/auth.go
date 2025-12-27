@@ -55,7 +55,9 @@ func run() error {
 		return fmt.Errorf("failed initialize storage: %w", err)
 	}
 
-	authManager, err := auth.New(lgr, []byte(cfg.SecretKey), store)
+	authManager, err := auth.New(lgr, []byte(cfg.SecretKey), store,
+		auth.SetTTLRefreshToken(cfg.API.JWTRefreshTokenTTL),
+	)
 	if err != nil {
 		return fmt.Errorf("failed initializa auth manager: %w", err)
 	}
@@ -70,6 +72,9 @@ func run() error {
 		rest.Addr(cfg.API.Addr),
 		rest.BaseURL(cfg.API.BaseURL),
 		rest.SetCookieDomain(cfg.API.CookieDomain.List()),
+		rest.SetCookieLifeTime(cfg.API.CookieLifeTime),
+		rest.SetTTLAccessToken(cfg.API.JWTAccessTokenTTL),
+		rest.SetTTLRefreshToken(cfg.API.JWTRefreshTokenTTL),
 	)
 
 	lgr.Info("Starting")

@@ -5,24 +5,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
+	rand2 "golang.org/x/exp/rand"
 )
-
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("error hashing password: %s", err.Error())
-	}
-
-	return string(bytes), nil
-}
-
-func CheckPasswordHash(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
-}
 
 // Функция для генерации пары ключей RSA
 func GenerateRSAKeys() (map[string][]byte, error) {
@@ -72,4 +57,13 @@ func DecryptDataRSA(ciphertext, privateKey []byte) ([]byte, error) {
 	}
 
 	return plaintext, nil
+}
+
+func RandomString(n uint) string {
+	var letterRunes = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterRunes[rand2.Intn(len(letterRunes))]
+	}
+	return string(b)
 }

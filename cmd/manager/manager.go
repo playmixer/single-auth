@@ -11,6 +11,7 @@ import (
 
 	"github.com/playmixer/single-auth/internal/adapters/config"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
+	"github.com/playmixer/single-auth/pkg/authtools"
 	"github.com/playmixer/single-auth/pkg/utils"
 )
 
@@ -41,7 +42,7 @@ func main() {
 	defer store.Close()
 
 	if *isNew {
-		passwordHash, err := utils.HashPassword(*password)
+		passwordHash, err := authtools.HashPassword(*password)
 		if err != nil {
 			log.Fatal(err)
 			return

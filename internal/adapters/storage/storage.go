@@ -24,6 +24,9 @@ type Storage interface {
 	CreateUser(ctx context.Context, username string, email string, passwordHash string) (*models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 	UpdUser(ctx context.Context, user *models.User) error
+	CreateRefreshToken(ctx context.Context, userID uint, token string, expiredDate time.Time) error
+	RemoveRefreshToken(ctx context.Context, refresh string) error
+	UpdRefreshToken(ctx context.Context, oldRefresh, newRefresh string) error
 
 	//Admin
 	FindUsersByLogin(ctx context.Context, login string) ([]models.User, error)

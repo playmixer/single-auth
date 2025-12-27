@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // VerifyJWT - Проверяет JWT.
@@ -45,4 +46,18 @@ func CreateJWT(secretKey []byte, data map[string]string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("error hashing password: %s", err.Error())
+	}
+
+	return string(bytes), nil
+}
+
+func CheckPasswordHash(hashedPassword, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
 }

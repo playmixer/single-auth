@@ -15,7 +15,10 @@ import (
 )
 
 type Logger struct {
-	l *zap.Logger
+	l     *zap.Logger
+	Info  func(msg string, fields ...zap.Field)
+	Debug func(msg string, fields ...zap.Field)
+	Error func(msg string, fields ...zap.Field)
 }
 
 type loggerConfigurator struct {
@@ -79,7 +82,7 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 		}
 	}
 
-	l.l = prepareCore(cfg)
+	l.l = l.prepareCore(cfg)
 
 	if cfg.isRotateFile {
 		go func(ctx context.Context, l *Logger) {
@@ -92,7 +95,7 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 					current := time.Now()
 					if current.Minute() == 0 && current.Hour() == 0 {
 						l.l.Sync()
-						l.l = prepareCore(cfg)
+						l.l = l.prepareCore(cfg)
 					}
 				}
 			}
@@ -102,7 +105,7 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 	return l, nil
 }
 
-func prepareCore(cfg loggerConfigurator) *zap.Logger {
+func (l *Logger) prepareCore(cfg loggerConfigurator) *zap.Logger {
 	stdout := zapcore.AddSync(os.Stdout)
 	if cfg.isRotateFile {
 		cfg.logPath = "./logs/log_" + time.Now().Format(cfg.prefix) + ".log"
@@ -137,21 +140,25 @@ func prepareCore(cfg loggerConfigurator) *zap.Logger {
 	}
 
 	core := zapcore.NewTee(ouputs...)
-	return zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	z := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	l.Info = z.Info
+	l.Debug = z.Debug
+	l.Error = z.Error
+	return z
 }
 
 func (l *Logger) Sync() {
 	l.l.Sync()
 }
 
-func (l *Logger) Info(msg string, fields ...zap.Field) {
-	l.l.Info(msg, fields...)
-}
+// func (l *Logger) Info(msg string, fields ...zap.Field) {
+// 	l.l.Info(msg, fields...)
+// }
 
-func (l *Logger) Error(msg string, fields ...zap.Field) {
-	l.l.Error(msg, fields...)
-}
+// func (l *Logger) Error(msg string, fields ...zap.Field) {
+// 	l.l.Error(msg, fields...)
+// }
 
-func (l *Logger) Debug(msg string, fields ...zap.Field) {
-	l.l.Debug(msg, fields...)
-}
+// func (l *Logger) Debug(msg string, fields ...zap.Field) {
+// 	l.l.Debug(msg, fields...)
+// }

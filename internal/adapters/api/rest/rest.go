@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +19,8 @@ const (
 	ContentType     string = "Content-Type"     // заколовок типа контент
 	ApplicationJSON string = "application/json" // json контент
 
-	CookieNameToken string = "singleauth_token" // поле хранения токента
+	CookieJWT          string = "singleauth_token" // поле хранения токента
+	CookieRefreshToken string = "singleauth_refresh"
 
 	ttlCacheDefault = time.Second * 30
 )
@@ -41,6 +40,9 @@ type AuthManager interface {
 	UpdUser(ctx context.Context, user *models.User) error
 
 	GetPayloadUser(ctx context.Context, appID string, data map[string]string) (params, appLink string, err error)
+	GenRefreshToken(ctx context.Context, userID uint) (string, error)
+	UpdRefreshToken(ctx context.Context, refresh string) (string, error)
+	Logout(ctx context.Context, refresh string) error
 }
 
 type AdminManager interface {
@@ -65,17 +67,20 @@ type Cache interface {
 }
 
 type Server struct {
-	log           *logger.Logger
-	auth          AuthManager
-	admin         AdminManager
-	cache         Cache
-	baseURL       string
-	trustedSubnet string
-	secretKey     []byte
-	cookieDomain  []string
-	cookieSecure  bool
-	s             http.Server
-	tlsEnable     bool
+	log                *logger.Logger
+	auth               AuthManager
+	admin              AdminManager
+	cache              Cache
+	baseURL            string
+	trustedSubnet      string
+	secretKey          []byte
+	cookieDomain       []string
+	cookieSecure       bool
+	cookieLifeTime     int
+	jwtAccessTokenTTL  int
+	jwtRefreshTokenTTL int
+	s                  http.Server
+	tlsEnable          bool
 }
 
 type Option func(s *Server)
@@ -136,6 +141,24 @@ func SetCookieSecure(secure bool) Option {
 	}
 }
 
+func SetCookieLifeTime(ttl int) Option {
+	return func(s *Server) {
+		s.cookieLifeTime = ttl
+	}
+}
+
+func SetTTLAccessToken(ttl int) Option {
+	return func(s *Server) {
+		s.jwtAccessTokenTTL = ttl
+	}
+}
+
+func SetTTLRefreshToken(ttl int) Option {
+	return func(s *Server) {
+		s.jwtRefreshTokenTTL = ttl
+	}
+}
+
 func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
 	r.LoadHTMLGlob("templates/**/*")
@@ -191,70 +214,4 @@ func (s *Server) Stop() {
 		s.log.Error("failed shutdown server", zap.Error(err))
 	}
 	s.log.Info("Server exiting")
-}
-
-func (s *Server) baseLink(short string) string {
-	return fmt.Sprintf("%s/%s", s.baseURL, short)
-}
-
-func (s *Server) checkAuth(c *gin.Context) (userID string, err error) {
-	var ok bool
-	var tknData map[string]string
-	cookieUserID, err := c.Request.Cookie(CookieNameToken)
-	if err == nil {
-		tknData, ok = s.auth.VerifyJWT(cookieUserID.Value)
-		s.log.Debug("cookie", zap.String("value", cookieUserID.Value), zap.Any("params", tknData))
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed reade user cookie: %w %w", errInvalidAuthCookie, err)
-	}
-	if !ok {
-		return "", fmt.Errorf("unverify usercookie: %w", errInvalidAuthCookie)
-	}
-	if userID, ok = tknData["userID"]; ok {
-		return userID, nil
-	}
-
-	return "", fmt.Errorf("failed to read user id from token: %w", errInvalidAuthCookie)
-}
-
-func (s *Server) isAuthenticate(c *gin.Context) (isAuth bool, user *models.User, err error) {
-	userID, err := s.checkAuth(c)
-	var userIDInt int
-	if err == nil {
-		userIDInt, err = strconv.Atoi(userID)
-	}
-	if err == nil {
-		key := "userid:" + userID
-		if err = s.cache.GetH(c.Request.Context(), key, user); err != nil {
-			user, err = s.auth.GetUserByID(c.Request.Context(), uint(userIDInt))
-			if err != nil {
-				isAuth = false
-				return
-			}
-
-			err = s.cache.SetH(c.Request.Context(), key, user, time.Minute)
-			if err != nil {
-				s.log.Error("failed save user to cache", zap.Error(err))
-			}
-		}
-	}
-	if err == nil {
-		isAuth = true
-	}
-	return
-}
-
-func empty[T string | int](s T) bool {
-	val := reflect.ValueOf(s)
-
-	switch val.Kind() {
-	case reflect.String:
-		return val.String() == ""
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return val.Int() == 0
-	default:
-		// Для других типов данных можно добавить дополнительную логику
-		return false
-	}
 }

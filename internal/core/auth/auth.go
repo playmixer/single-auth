@@ -5,10 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	authtools "github.com/playmixer/single-auth/pkg/authtools"
 	"github.com/playmixer/single-auth/pkg/logger"
+	"github.com/playmixer/single-auth/pkg/utils"
+)
+
+var (
+	lenRefresh uint = 100
 )
 
 type Store interface {
@@ -18,15 +24,27 @@ type Store interface {
 
 	UpdUser(ctx context.Context, user *models.User) error
 	GetApplication(ctx context.Context, appID string) (*models.Application, error)
+	CreateRefreshToken(ctx context.Context, userID uint, token string, expiredDate time.Time) error
+	RemoveRefreshToken(ctx context.Context, refresh string) error
+	UpdRefreshToken(ctx context.Context, oldRefresh, newRefresh string) error
 }
 
 type Auth struct {
-	log       *logger.Logger
-	secretKey []byte
-	store     Store
+	log             *logger.Logger
+	secretKey       []byte
+	refreshTokenTTL int
+	store           Store
 }
 
-func New(log *logger.Logger, secretKey []byte, store Store) (*Auth, error) {
+type Option func(a *Auth)
+
+func SetTTLRefreshToken(ttl int) Option {
+	return func(a *Auth) {
+		a.refreshTokenTTL = ttl
+	}
+}
+
+func New(log *logger.Logger, secretKey []byte, store Store, opt ...Option) (*Auth, error) {
 	return &Auth{
 		store:     store,
 		secretKey: secretKey,
@@ -79,4 +97,18 @@ func (a *Auth) CreateJWT(data map[string]string) (string, error) {
 
 func (a *Auth) getAppByID(ctx context.Context, appID string) (*models.Application, error) {
 	return a.store.GetApplication(ctx, appID)
+}
+
+func (a *Auth) GenRefreshToken(ctx context.Context, userID uint) (string, error) {
+	refresh := utils.RandomString(lenRefresh)
+	return refresh, a.store.CreateRefreshToken(ctx, userID, refresh, time.Now().Add(time.Second*time.Duration(a.refreshTokenTTL)))
+}
+
+func (a *Auth) Logout(ctx context.Context, refresh string) error {
+	return a.store.RemoveRefreshToken(ctx, refresh)
+}
+
+func (a *Auth) UpdRefreshToken(ctx context.Context, oldRefresh string) (string, error) {
+	newRefresh := utils.RandomString(lenRefresh)
+	return newRefresh, a.store.UpdRefreshToken(ctx, oldRefresh, newRefresh)
 }

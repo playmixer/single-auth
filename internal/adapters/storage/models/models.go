@@ -47,3 +47,13 @@ func (a *Application) BeforeCreate(tx *gorm.DB) (err error) {
 	a.ID = uuid.New()
 	return
 }
+
+type Session struct {
+	ID          uint   `gorm:"primarykey"`
+	Token       string `gorm:"index,idx_token,unique"`
+	User        User
+	UserID      uint
+	ExpiredDate time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
