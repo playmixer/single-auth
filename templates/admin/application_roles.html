@@ -1,0 +1,24 @@
+{{ define "admin/application_roles.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание ролей</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <h1>Создание ролей</h1>
+
+    <form action="process_form.php" method="post">
+        <label for="role_name">Название роли:</label>
+        <input type="text" id="role_name" name="role_name" required>
+
+        <label for="permissions">Разрешения:</label>
+        <textarea id="permissions" name="permissions" rows="10" cols="50" required></textarea>
+
+        <input type="submit" value="Создать роль">
+    </form>
+</body>
+</html>
+{{ end }}

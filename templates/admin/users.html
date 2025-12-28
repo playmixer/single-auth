@@ -91,40 +91,6 @@
             padding: 10px;
             border-radius: 4px;
         }
-        /* Стили для модального окна */
-        dialog[open] {
-            display: block !important;
-        }
-        .modal {
-            display: none; /* Скрываем окно по умолчанию */
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-        }
-        .close {
-            color: #aaaaaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: #000;
-            text-decoration: none;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -219,13 +185,7 @@
         {{ end }}
     </table>
 </div>
-<dialog class="modal">
-    <div class="modal-content">
-        <p>Вы уверены?</p>
-        <button type="button" class="btnlink btnlink-danger" onclick="closeModal()" aria-label="Close modal">Отмена</button>
-        <button type="button" class="btnlink btnlink-primary" onclick="confirmSubmit()">Да</button>
-    </div>
-</dialog>
+{{ template "modules/modal.html" }}
 <script>
     const onClickUserUpd = document.querySelectorAll("[name='click_user_upd']")
     if (onClickUserUpd) {
@@ -243,7 +203,6 @@
     }
 
     const formsUserDel = document.querySelectorAll('[name="form_user_delete"]');
-    const modal = document.querySelector('.modal');
 
     // Обработчик события отправки формы
     let form = null
@@ -257,13 +216,6 @@
                 }
             }(formsUserDel[i]));
         }
-    }
-    function confirmSubmit() {
-        modal.close(); // Закрываем модальное окно
-        form.submit(); // Отправляем форму
-    }
-    function closeModal() {
-        modal.close(); // Закрываем модальное окно
     }
 </script>
 </body>
