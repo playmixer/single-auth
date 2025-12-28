@@ -162,6 +162,7 @@ func SetTTLRefreshToken(ttl int) Option {
 func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
 	r.LoadHTMLGlob("templates/**/*")
+	r.Static("/css", "./static/css")
 	r.Use(
 		s.middlewareLogger(),
 	)
