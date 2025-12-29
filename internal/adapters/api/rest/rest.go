@@ -46,17 +46,20 @@ type AuthManager interface {
 }
 
 type AdminManager interface {
-	CreateNewUser(ctx context.Context, login, email, passwordHash string) (*models.User, error)
+	CreateNewUser(ctx context.Context, login, email, passwordHash string, admin bool) (*models.User, error)
 	FindUsersByLogin(ctx context.Context, login string) ([]models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 	RemoveUser(ctx context.Context, userID uint) error
 	UpdUser(ctx context.Context, user *models.User) error
+	UpdRolesUser(ctx context.Context, userID uint, roles []uint) error
 
 	CreateApplication(ctx context.Context, title, link string) (*models.Application, error)
 	GetApplication(ctx context.Context, appID string) (*models.Application, error)
 	FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error)
 	UpdateApplication(ctx context.Context, app *models.Application) error
 	RemoveApplication(ctx context.Context, appID string) error
+	CreateRoleApplication(ctx context.Context, appID string, name string, description string) (*models.Role, error)
+	UpdateRole(ctx context.Context, roleID uint, name, description string) error
 }
 
 type Cache interface {
@@ -187,10 +190,14 @@ func (s *Server) SetupRouter() *gin.Engine {
 		admin.POST("/users", s.handlerAdminNewUser)
 		admin.POST("/users/:userID/delete", s.handlerAdminRemoveUser)
 		admin.POST("/users/:userID/update", s.handlerAdminUpdUser)
+		admin.POST("/users/:userID/roles", s.handlerAdminUprRolesUser)
 		admin.GET("/applications", s.handlerAdminApplications)
 		admin.POST("/applications", s.handlerAdminApplicationNew)
 		admin.POST("/applications/:appID/delete", s.handlerAdminRemoveApplication)
 		admin.POST("/applications/:appID/update", s.handlerAdminUpdApplication)
+		admin.GET("/applications/roles", s.handlerAdminApplicationRoles)
+		admin.POST("/applications/roles", s.handlerAdminApplicationRolesNew)
+		admin.POST("/applications/roles/:roleID/edit", s.handlerAdminApplicationUpdRole)
 
 	}
 

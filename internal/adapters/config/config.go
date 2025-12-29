@@ -8,7 +8,6 @@ import (
 	"github.com/playmixer/single-auth/internal/adapters/api/rest"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
 	"github.com/playmixer/single-auth/internal/adapters/storage/database"
-	"github.com/playmixer/single-auth/internal/adapters/storage/filestore"
 )
 
 // Config конфигурация сервиса.
@@ -26,7 +25,6 @@ func Init() (*Config, error) {
 	cfg := Config{
 		API: rest.Config{},
 		Store: storage.Config{
-			File:     filestore.Config{},
 			Database: database.Config{},
 		},
 		Cache: storage.ConfigCache{},

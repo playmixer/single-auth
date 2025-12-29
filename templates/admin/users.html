@@ -85,11 +85,26 @@
             width: 100%;
             background-color: #007bff;
             color: white;
-            border: none;
             cursor: pointer;
-            width: 100%;
             padding: 10px;
             border-radius: 4px;
+        }
+        .apps_roles {
+            display: flex; 
+            flex-direction: row; 
+            align-items: start; 
+            justify-content: start;
+        }
+        .apps_roles .app_roles {
+            display: flex; 
+            flex-direction: column; 
+            justify-content: start; 
+            align-items: start; 
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            height: 100%;
         }
     </style>
 </head>
@@ -138,6 +153,11 @@
             <label for="password2">Повторить пароль:</label>
             <input type="password" id="password2" name="password2" required>
 
+            <div style="display: flex; flex-direction: row; justify-content: start; align-items: center;">
+                <label for="admin">Admin</label>
+                <input type="checkbox" id="admin" name="admin" style="width: 50px;">
+            </div>
+
             <input type="submit" value="Создать">
         </form>
     </div>
@@ -150,16 +170,50 @@
             <th>Роль</th>
             <th>Действия</th>
         </tr>
+        {{ $apps := .applications }}
         {{ range .users }}
+        {{ $uID := .ID }}
         <tr>
             <td>{{ .Login }}</td>
             <td>{{ .Email }}</td>
             <td>{{ if .IsAdmin }}Да{{ end }}</td>
-            <td>USER</td>
+            <td>
+                <a class="btnlink btnlink-primary" onclick="toggleRoleEdit('user_role_upd_{{ .ID }}')">+</a>
+                {{ range .Roles }}{{ .Name }}, {{ end }}
+            </td>
             <td style="display: flex; flex-direction: row;">
                 <a href="#" class="btnlink btnlink-primary" name="click_user_upd" data-userid="{{ .ID }}">Редактировать</a> | 
                 <form action="/admin/users/{{ .ID }}/delete" method="post" name="form_user_delete">
                     <input type="submit" class="btnlink btnlink-danger" value="Удалить">
+                </form>
+            </td>
+        </tr>
+        <tr class="hidden" id="user_role_upd_{{ .ID }}">
+            <td colspan="5">
+                <form action="/admin/users/{{ .ID }}/roles" method="POST">
+                    <input type="hidden" name="userID" value="{{ .ID }}">
+                    <div class="apps_roles">
+                        {{ $uRoles := .Roles }}
+                        {{ range $apps }}
+                        <div class="app_roles">
+                            <h4>{{ .Title }}</h4>
+                            {{ range .Roles }}
+                                {{ $checked := false }}
+                                {{ $id := .ID }}
+                                {{ range $uRoles }}
+                                    {{ if eq .ID $id }}
+                                        {{ $checked = true }}
+                                    {{ end }}
+                                {{ end }}
+                            <div>
+                                <input type="checkbox" id="role_{{ $uID }}_{{ .ID }}" name="roles" value="{{ .ID }}" {{ if $checked }}checked{{ end }}>
+                                <label for="role_{{ $uID }}_{{ .ID }}">{{ .Name }}</label>
+                            </div>
+                            {{ end }}
+                        </div>
+                        {{ end }}
+                    </div>
+                    <input type="submit" class="btn btnlink-primary" value="Сохранить">
                 </form>
             </td>
         </tr>
@@ -169,16 +223,23 @@
                     <input type="hidden" name="id" value="{{ .ID }}" required>
                     <input type="hidden" name="login" value="{{ .Login }}" required>
 
-                    <label for="emailu">Email:</label>
-                    <input type="email" id="emailu" name="email" value="{{ .Email }}" required>
+                    <label for="{{ $uID }}_emailu">Email:</label>
+                    <input type="email" id="{{ $uID }}_emailu" name="email" value="{{ .Email }}" required>
 
-                    <label for="passwordu">Пароль:</label>
-                    <input type="password" id="passwordu" name="password">
+                    <label for="{{ $uID }}_passwordu">Пароль:</label>
+                    <input type="password" id="{{ $uID }}_passwordu" name="password">
 
-                    <label for="password2u">Повторить пароль:</label>
-                    <input type="password" id="password2u" name="password2">
+                    <label for="{{ $uID }}_password2u">Повторить пароль:</label>
+                    <input type="password" id="{{ $uID }}_password2u" name="password2">
 
-                    <input type="submit" value="Сохранить">
+                    <div style="display: flex; flex-direction: row; justify-content: start; align-items: center;">
+                        <label for="{{ $uID }}_admin">Admin</label>
+                        <input type="checkbox" id="{{ $uID }}_admin" name="admin" style="width: 50px;" {{ if .IsAdmin }}checked{{ end }}>
+                    </div>
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <input type="submit" class="btn" value="Сохранить">
+                        <input type="button" class="btn btnlink-danger" value="Отмена">
+                    </div>
                 </form>
             </td>
         </tr>
@@ -200,6 +261,10 @@
     function toggleForm(btn) {
         const formContainer = document.querySelector("#form-container");
         formContainer.classList.toggle('active');
+    }
+    function toggleRoleEdit(id) {
+        const formRoleEdit = document.querySelector(`#${id}`)
+        formRoleEdit.classList.toggle('hidden');
     }
 
     const formsUserDel = document.querySelectorAll('[name="form_user_delete"]');

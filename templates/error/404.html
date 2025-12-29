@@ -1,0 +1,42 @@
+{{ define "error/404.html"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ошибка 404</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            color: #666;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ошибка 404</h1>
+    <p>Страница не найдена.</p>
+    <p>Возможно, вы ввели неправильный адрес или страница была удалена.</p>
+    <p>Вы можете <a href="#" onclick="goBack()">вернуться назад</a> или <a href="/auth/login">на главную</a>.</p>
+    <script>
+        function goBack() {
+            document.location.href = document.referrer
+        }
+    </script>
+</body>
+</html>
+{{ end }}

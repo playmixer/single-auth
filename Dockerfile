@@ -27,6 +27,7 @@ WORKDIR /app
 COPY --from=build /app/auth /app/auth
 COPY --from=build /app/manager /app/manager
 COPY ./templates /app/templates
+COPY ./static /app/static
 
 RUN chmod +x /app/auth
 

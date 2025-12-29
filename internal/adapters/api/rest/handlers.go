@@ -2,12 +2,14 @@ package rest
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/playmixer/single-auth/internal/adapters/apperror"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	"github.com/playmixer/single-auth/pkg/authtools"
 	"go.uber.org/zap"
@@ -130,14 +132,20 @@ func (s *Server) handlerAPIUserAuthInfo(c *gin.Context) {
 		return
 	}
 
-	cookie, _ := c.Request.Cookie(CookieJWT)
+	roles := []string{}
+	for _, role := range user.Roles {
+		roles = append(roles, role.Name)
+	}
+
+	// cookie, _ := c.Request.Cookie(CookieJWT)
 	key := "apppayload:appid:" + appID + ":user:" + strconv.Itoa(int(user.ID))
 	payload := &Payload{}
 	if err := s.cache.GetH(c.Request.Context(), key, payload); err != nil {
 		payload.Params, payload.Link, err = s.auth.GetPayloadUser(c.Request.Context(), appID, map[string]string{
 			"username": user.Login,
 			"email":    user.Email,
-			"token":    cookie.Value,
+			// "token":    cookie.Value,
+			"roles": strings.Join(roles, ","),
 		})
 		if err != nil {
 			s.log.Error("failed generate app params", zap.Error(err), zap.String("appID", appID))
@@ -228,13 +236,20 @@ func (s *Server) handlerAdminUsers(c *gin.Context) {
 		}
 	}
 
+	applications, err := s.admin.FindApplicationByTitle(c.Request.Context(), "")
+	if err != nil {
+		errMessage = "failed find applications"
+		s.log.Error("failed find applications", zap.Error(err))
+	}
+
 	c.HTML(http.StatusOK, "admin/users.html", gin.H{
-		"status": "ok",
-		"isAuth": isAuth,
-		"user":   user,
-		"users":  searchUsers,
-		"error":  errMessage,
-		"search": search,
+		"status":       "ok",
+		"isAuth":       isAuth,
+		"user":         user,
+		"users":        searchUsers,
+		"applications": applications,
+		"error":        errMessage,
+		"search":       search,
 	})
 }
 
@@ -243,6 +258,8 @@ func (s *Server) handlerAdminNewUser(c *gin.Context) {
 	email := strings.ToLower(c.PostForm("email"))
 	password := c.PostForm("password")
 	password2 := c.PostForm("password2")
+	adminS := c.PostForm("admin")
+	admin := adminS == "on"
 
 	if empty(login) || empty(email) || empty(password) || empty(password2) {
 		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=not_valid_datas")
@@ -260,7 +277,7 @@ func (s *Server) handlerAdminNewUser(c *gin.Context) {
 		return
 	}
 
-	_, err = s.admin.CreateNewUser(c.Request.Context(), login, email, passwordHash)
+	_, err = s.admin.CreateNewUser(c.Request.Context(), login, email, passwordHash, admin)
 	if err != nil {
 		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=failed_create_user")
 		return
@@ -299,6 +316,8 @@ func (s *Server) handlerAdminUpdUser(c *gin.Context) {
 	login := c.PostForm("login")
 	password := c.PostForm("password")
 	password2 := c.PostForm("password2")
+	adminS := c.PostForm("admin")
+	admin := adminS == "on"
 
 	if empty(email) {
 		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=not_valid_email&search_query="+login)
@@ -334,6 +353,7 @@ func (s *Server) handlerAdminUpdUser(c *gin.Context) {
 		user.PasswordHash = passwordHash
 	}
 	user.Email = email
+	user.IsAdmin = admin
 
 	err = s.admin.UpdUser(c.Request.Context(), user)
 	if err != nil {
@@ -341,6 +361,37 @@ func (s *Server) handlerAdminUpdUser(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=faile_update_user")
 		return
 	}
+	c.Redirect(http.StatusMovedPermanently, "/admin/users?search_query="+user.Login)
+}
+
+func (s *Server) handlerAdminUprRolesUser(c *gin.Context) {
+	sRoles := c.PostFormArray("roles")
+	userIDs := c.Param("userID")
+	userID, err := strconv.ParseUint(userIDs, 10, 32)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=user_id_not_valid")
+		return
+	}
+
+	user, err := s.admin.GetUserByID(c.Request.Context(), uint(userID))
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=user_not_found")
+		return
+	}
+
+	roles, err := arrString(sRoles).StringSliceToUintSlice()
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=roles_not_valid")
+		return
+	}
+
+	s.log.Debug("upd roles", zap.Any("user", user), zap.Any("roles", roles))
+	err = s.admin.UpdRolesUser(c.Request.Context(), user.ID, roles)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/users?error=failed_upd_user_roles")
+		return
+	}
+
 	c.Redirect(http.StatusMovedPermanently, "/admin/users?search_query="+user.Login)
 }
 
@@ -430,4 +481,95 @@ func (s *Server) handlerAdminUpdApplication(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusMovedPermanently, "/admin/applications?search_query="+app.Title)
+}
+
+func (s *Server) handlerAdminApplicationRoles(c *gin.Context) {
+	var err error
+	errMessage := c.Query("error")
+	appID := c.Query("appID")
+	app, err := s.admin.GetApplication(c.Request.Context(), appID)
+	if err != nil {
+		if errors.Is(err, apperror.ErrNotFoundData) {
+			c.HTML(http.StatusNotFound, "error/404.html", gin.H{
+				"error": "application_not_found",
+			})
+			return
+		}
+		c.HTML(http.StatusInternalServerError, "admin/application_roles.html", gin.H{
+			"error": "failed_getting_application",
+		})
+		return
+	}
+
+	s.log.Debug("app", zap.Any("app", app))
+
+	c.HTML(http.StatusOK, "admin/application_roles.html", gin.H{
+		"app":     app,
+		"baseURL": s.baseURL,
+		"error":   errMessage,
+	})
+}
+
+func (s *Server) handlerAdminApplicationRolesNew(c *gin.Context) {
+	appID := c.PostForm("appID")
+	if appID == "" {
+		c.HTML(http.StatusNotFound, "error/404.html", gin.H{
+			"error": "application_not_found",
+		})
+		return
+	}
+
+	name := c.PostForm("role_name")
+	description := c.PostForm("role_description")
+
+	_, err := s.admin.CreateRoleApplication(c.Copy().Request.Context(), appID, name, description)
+	if err != nil {
+		if errors.Is(err, apperror.ErrNotFoundData) {
+			c.HTML(http.StatusNotFound, "error/404.html", gin.H{
+				"error": "application_not_found",
+			})
+			return
+		}
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID+"&error=faile_create_role")
+		return
+	}
+
+	c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID)
+}
+
+func (s *Server) handlerAdminApplicationUpdRole(c *gin.Context) {
+	appID := c.PostForm("appID")
+	if appID == "" {
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications?error=app_id_not_valid")
+		return
+	}
+	_, err := s.admin.GetApplication(c.Request.Context(), appID)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications?error=app_not_valid")
+		return
+	}
+	roleIDs := c.Param("roleID")
+	roleID, err := strconv.ParseUint(roleIDs, 10, 32)
+	if err != nil {
+
+	}
+	if roleID == 0 || c.Param("roleID") != c.PostForm("roleID") {
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID+"&error=role_id_not_valid")
+		return
+	}
+
+	name := c.PostForm("edit_role_name")
+	description := c.PostForm("edit_role_description")
+
+	err = s.admin.UpdateRole(c.Copy().Request.Context(), uint(roleID), name, description)
+	if err != nil {
+		if errors.Is(err, apperror.ErrNotFoundData) {
+			c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID+"&error=role_not_found")
+			return
+		}
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID+"&error=faile_create_role")
+		return
+	}
+
+	c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID)
 }

@@ -51,7 +51,7 @@ func main() {
 			log.Fatal(errors.New("username or password not valid"))
 			return
 		}
-		_, err = store.CreateUser(context.Background(), *username, *email, passwordHash)
+		_, err = store.CreateUser(context.Background(), *username, *email, passwordHash, true)
 		if err != nil {
 			log.Fatal(err)
 			return

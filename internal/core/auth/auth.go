@@ -19,7 +19,6 @@ var (
 
 type Store interface {
 	GetUser(ctx context.Context, username string) (*models.User, error)
-	CreateUser(ctx context.Context, username, email string, passwordHash string) (*models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 
 	UpdUser(ctx context.Context, user *models.User) error

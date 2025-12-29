@@ -2,6 +2,7 @@ body {
     font-family: Arial, sans-serif;
     margin: 20px auto;
     max-width: 1200px;
+    padding: 20px;
 }
 
 @media (max-width: 1200px) {
@@ -103,4 +104,8 @@ th {
 .btnlink-primary {
     color: white;
     background-color: #007bff;
+}
+
+.hidden {
+    display: none;
 }

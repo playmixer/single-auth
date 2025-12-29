@@ -65,7 +65,6 @@ func (s *Server) middlewareCheckCookies() gin.HandlerFunc {
 
 		// если access токен просрочен то пытаемся перевыпустить
 		currentTime := time.Now().Unix()
-		s.log.Debug("token time", zap.Int64("current", currentTime), zap.Int64("expired", expiredDate))
 		if currentTime > expiredDate {
 			err = func(c *gin.Context) error {
 				refreshCookie, err := c.Request.Cookie(CookieRefreshToken)

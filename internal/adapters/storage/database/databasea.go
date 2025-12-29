@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/playmixer/single-auth/internal/adapters/apperror"
@@ -52,13 +53,14 @@ func (s *Storage) migration() error {
 		&models.User{},
 		&models.Application{},
 		&models.Session{},
+		&models.Role{},
 	); err != nil {
 		return fmt.Errorf("failed migrations: %w", err)
 	}
 	return nil
 }
 
-func (s *Storage) CreateUser(ctx context.Context, login, email, passwordHash string) (*models.User, error) {
+func (s *Storage) CreateUser(ctx context.Context, login, email, passwordHash string, admin bool) (*models.User, error) {
 	login = strings.ToLower(login)
 	email = strings.ToLower(email)
 	user := &models.User{
@@ -68,6 +70,7 @@ func (s *Storage) CreateUser(ctx context.Context, login, email, passwordHash str
 		Model: gorm.Model{
 			CreatedAt: time.Now(),
 		},
+		IsAdmin: admin,
 	}
 
 	err := s.db.WithContext(ctx).Create(user).Error
@@ -85,7 +88,7 @@ func (s *Storage) CreateUser(ctx context.Context, login, email, passwordHash str
 func (s *Storage) GetUser(ctx context.Context, login string) (*models.User, error) {
 	login = strings.ToLower(login)
 	user := &models.User{}
-	err := s.db.WithContext(ctx).Where("login = ?", login).First(user).Error
+	err := s.db.WithContext(ctx).Where("login = ?", login).Preload("Roles").First(user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Join(apperror.ErrNotFoundData, err)
@@ -98,7 +101,7 @@ func (s *Storage) GetUser(ctx context.Context, login string) (*models.User, erro
 
 func (s *Storage) GetUserByID(ctx context.Context, userID uint) (*models.User, error) {
 	user := &models.User{}
-	err := s.db.WithContext(ctx).Where("id = ?", userID).First(user).Error
+	err := s.db.WithContext(ctx).Where("id = ?", userID).Preload("Roles").First(user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Join(apperror.ErrNotFoundData, err)
@@ -126,7 +129,7 @@ func (s *Storage) FindUsersByLogin(ctx context.Context, login string) ([]models.
 	login = strings.ToLower(login)
 	users := []models.User{}
 
-	err := s.db.WithContext(ctx).Where("login like ?", "%"+login+"%").Find(&users).Error
+	err := s.db.WithContext(ctx).Where("login like ?", "%"+login+"%").Preload("Roles").Find(&users).Error
 	if err != nil && !errors.Is(gorm.ErrRecordNotFound, err) {
 		return users, fmt.Errorf("failes find users: %w", err)
 	}
@@ -154,7 +157,7 @@ func (s *Storage) CreateApplication(ctx context.Context, title, link string) (*m
 
 func (s *Storage) GetApplication(ctx context.Context, appID string) (*models.Application, error) {
 	app := &models.Application{}
-	err := s.db.WithContext(ctx).Where("id = ?", appID).First(app).Error
+	err := s.db.WithContext(ctx).Where("id = ?", appID).Preload("Roles").First(app).Error
 	if err != nil {
 		return nil, errors.Join(err, apperror.ErrNotFoundData)
 	}
@@ -192,7 +195,7 @@ func (s *Storage) GetApplicationByTitle(ctx context.Context, title string) (*mod
 
 func (s *Storage) FindApplicationByTitle(ctx context.Context, title string) ([]models.Application, error) {
 	apps := []models.Application{}
-	err := s.db.WithContext(ctx).Where("title like ?", "%"+title+"%").Find(&apps).Error
+	err := s.db.WithContext(ctx).Where("title like ?", "%"+title+"%").Preload("Roles").Find(&apps).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.Join(err, apperror.ErrNotFoundData)
 	}
@@ -243,6 +246,50 @@ func (s *Storage) UpdRefreshToken(ctx context.Context, oldRefresh, newRefresh st
 	err = s.db.WithContext(ctx).Where("token = ?", oldRefresh).Updates(session).Error
 	if err != nil {
 		return fmt.Errorf("failed update refresh token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) CreateRole(ctx context.Context, appID, name, description string) (*models.Role, error) {
+	role := &models.Role{
+		Name:          name,
+		Description:   description,
+		ApplicationID: uuid.MustParse(appID),
+	}
+	err := s.db.WithContext(ctx).Create(role).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed create role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (s *Storage) UpdRole(ctx context.Context, role *models.Role) error {
+	err := s.db.WithContext(ctx).Updates(role).Error
+	if err != nil {
+		return fmt.Errorf("failed update role: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) GetRole(ctx context.Context, roleID uint) (*models.Role, error) {
+	role := &models.Role{}
+	err := s.db.WithContext(ctx).Where("id = ?", roleID).First(role).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.Join(err, apperror.ErrNotFoundData)
+		}
+		return nil, fmt.Errorf("failed getting role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (s *Storage) UpdUserRoles(ctx context.Context, user *models.User, roles []models.Role) error {
+	err := s.db.WithContext(ctx).Model(user).Association("Roles").Replace(roles)
+	if err != nil {
+		return fmt.Errorf("failed update user roles: %w", err)
 	}
 
 	return nil

@@ -4,21 +4,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Создание ролей</title>
+    <title>Роли приложения</title>
     <link rel="stylesheet" href="/css/admin.css">
+    <style>
+        h1 {
+            color: #333;
+        }
+
+        .roles {
+            margin-bottom: 20px;
+        }
+
+        .role {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        .role h2 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .role p {
+            margin-bottom: 0;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .form_controler {
+            display: flex;
+            flex-direction: row;
+        }
+        .form_controler input {
+            width: 200px;
+        }
+        .form_controler input:first-child {
+            margin-right: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Создание ролей</h1>
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li><a href="/admin">Админ панель</a></li>
+    <li><a href="/admin/applications">Приложения</a></li>
+    <li>{{ .app.Title }}</li>
+</ul>
+<h1>Роли приложения {{ .app.Title }}</h1>
+{{ if .error }}
+<span>{{ .error }}</span>
+{{ end }}
 
-    <form action="process_form.php" method="post">
-        <label for="role_name">Название роли:</label>
-        <input type="text" id="role_name" name="role_name" required>
+<div class="roles">
+    {{ $appID := .app.ID }}
+    <!-- Здесь можно добавить список существующих ролей -->
+     {{ range .app.Roles }}
+    <div class="role">
+        <div name="role_edit_{{ .ID }}" style="display: flex; flex-direction: row; align-items: start; justify-content: space-between;">
+            <div>
+                <h2 style="margin-top: 0;">{{ .Name }}</h2>
+                <p>{{ .Description }}</p>
+            </div>
+            <button class="btn btnlink-primary" onclick="toggleEditForm('role_edit_{{ .ID }}')" style="width: 150px;">Изменить</button>
+        </div>
+        <div name="role_edit_{{ .ID }}" class="hidden">
+            <form action="/admin/applications/roles/{{ .ID }}/edit" method="POST">
+                <input type="hidden" name="appID" value="{{ $appID }}">
+                <input type="hidden" name="roleID" value="{{ .ID }}">
+                <label for="edit_role_name">Название роли:</label>
+                <input type="text" id="edit_role_name" name="edit_role_name" value="{{ .Name }}" required>
 
-        <label for="permissions">Разрешения:</label>
-        <textarea id="permissions" name="permissions" rows="10" cols="50" required></textarea>
+                <label for="edit_role_description">Описание:</label>
+                <textarea id="edit_role_description" name="edit_role_description" rows="10" cols="50">{{ .Description }}</textarea>
 
-        <input type="submit" value="Создать роль">
-    </form>
+                <div class="form_controler">
+                    <input type="submit" value="Сохранить" style="width: 200px;">
+                    <input type="button" value="Отмена" class="btn btnlink-danger" style="width: 200px;" onclick="toggleEditForm('role_edit_{{ .ID }}')">
+                </div>
+            </form>
+        </div>
+    </div>
+    {{ end }}
+</div>
+
+<h2>Добавить роль</h2>
+<form action="/admin/applications/roles" method="post">
+    <input type="hidden" name="appID" value="{{ .app.ID }}">
+    <label for="role_name">Название роли:</label>
+    <input type="text" id="role_name" name="role_name" required>
+
+    <label for="description">Описание:</label>
+    <textarea id="description" name="role_description" rows="10" cols="50"></textarea>
+
+    <input type="submit" value="Создать роль">
+</form>
+{{ template "modules/modal.html" }}
+<script>
+    function toggleEditForm(id) {
+        const f = document.querySelectorAll(`[name='${id}']`)
+        for (var i = 0; i < f.length; i++) {
+            f[i].classList.toggle("hidden")
+        }
+
+    }
+</script>
 </body>
 </html>
 {{ end }}
