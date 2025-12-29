@@ -8,8 +8,21 @@ services:
     depends_on:
       - auth-database
     restart: always
-    env_file:
-      - .env
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL}
+      SERVER_BASEURL: ${SERVER_BASEURL}
+      SERVER_ADDRESS: ${SERVER_ADDRESS}
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
+      AUTH_STORAGE: ${AUTH_STORAGE}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      COOKIE_SECURE: ${COOKIE_SECURE}
+      COOKIE_LIFETIME: ${COOKIE_LIFETIME}
+      DATABASE_ADDRESS: ${DATABASE_ADDRESS}
+      REDIS_ADDRESS: ${REDIS_ADDRESS}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -17,7 +30,7 @@ services:
     ports:
       - 8080:8080
     networks:
-      - homemix_net
+      - singleauth_net
 
   auth-database:
     image: postgres:18.1
@@ -35,7 +48,7 @@ services:
     expose:
       - '5432'
     networks:
-      - homemix_net
+      - singleauth_net
 
   auth-redis:
     image: redis:latest
@@ -53,7 +66,7 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_DATABASES=${REDIS_DB}
     networks:
-      - homemix_net
+      - singleauth_net
 
 networks:
-  homemix_net:
+  singleauth_net:

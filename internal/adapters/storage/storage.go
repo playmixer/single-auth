@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	TypeStorage string `env:"AUTH_STORAGE" envDefault:"file"`
+	TypeStorage string `env:"AUTH_STORAGE" envDefault:"database"`
 	Database    database.Config
 }
 
