@@ -26,7 +26,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./app.auth.setting.json:/app/app.auth.setting.json:ro
     ports:
       - 8080:8080
     networks:
