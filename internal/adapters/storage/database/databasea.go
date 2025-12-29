@@ -117,7 +117,7 @@ func (s *Storage) Close() error {
 }
 
 func (s *Storage) UpdUser(ctx context.Context, user *models.User) error {
-	err := s.db.WithContext(ctx).Where("id = ?", user.ID).Updates(user).Error
+	err := s.db.WithContext(ctx).Where("id = ?", user.ID).Save(user).Error
 	if err != nil {
 		return fmt.Errorf("failed update user: %w", err)
 	}

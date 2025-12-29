@@ -9,9 +9,9 @@ import (
 )
 
 type User struct {
-	Login        string `gorm:"index,idx_login,unique"`
+	Login        string `gorm:"index:idx_login,unique"`
 	PasswordHash string
-	Email        string `gorm:"index,idx_email,unique"`
+	Email        string `gorm:"index:idx_email,unique"`
 	Roles        []Role `gorm:"many2many:user_roles;"`
 	IsAdmin      bool
 	gorm.Model
@@ -37,7 +37,7 @@ func (us *Users) UnmarshalBinary(data []byte) error {
 
 type Application struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
-	Title     string    `gorm:"index,idx_app_title,unique"`
+	Title     string    `gorm:"index:idx_app_title,unique"`
 	AuthLink  string
 	Roles     []Role
 	CreatedAt time.Time
@@ -52,9 +52,9 @@ func (a *Application) BeforeCreate(tx *gorm.DB) (err error) {
 
 type Session struct {
 	ID          uint   `gorm:"primarykey"`
-	Token       string `gorm:"index,idx_token,unique"`
+	Token       string `gorm:"index:idx_token,unique"`
 	User        User
-	UserID      uint `gorm:"index,idx_session_user"`
+	UserID      uint `gorm:"index:idx_session_user"`
 	ExpiredDate time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -62,10 +62,10 @@ type Session struct {
 
 type Role struct {
 	ID          uint   `gorm:"primarykey"`
-	Name        string `gorm:"index,idx_role_name,unique"`
+	Name        string `gorm:"index:idx_role_name,unique"`
 	Description string
 	// Application   Application
-	ApplicationID uuid.UUID `gorm:"not null,index,idx_role_application"`
+	ApplicationID uuid.UUID `gorm:"not null,index:idx_role_application"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
