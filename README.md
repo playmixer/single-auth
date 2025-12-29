@@ -26,6 +26,19 @@
 
 ### Поднять в docker [пример](/docker-compose.yml)
 
+### Первый запуск 
+- Создать администратора:
+  - Подключить к контейнеру (зависит от ваших настроек)
+    ```bash
+    docker exec -it container-name-auth-server bash
+    ```
+  - Выполнить команду, укащать имя пользователя и задать пароль
+    ```bash
+    ./manager -new -u admin -p password
+    ```
+- Авторизоваться на https://example.com/auth/login
+- Админ панель на https://exmaple.com/admin
+
 ### Описание глобальных переменных
 
 - **LOG_LEVEL=debug**
