@@ -1,7 +1,6 @@
-package authtools_test
+package authtools
 
 import (
-	"auth/pkg/authtools"
 	"bytes"
 	"encoding/base64"
 	"testing"
@@ -24,7 +23,7 @@ func TestDecrypt(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
-			keys, err := authtools.GenerateRSAKeys()
+			keys, err := GenerateRSAKeys()
 			if err != nil {
 				t.Error(err)
 				return
@@ -43,13 +42,13 @@ func TestDecrypt(t *testing.T) {
 				return
 			}
 
-			encryptText, err := authtools.EncryptDataRSA([]byte(c.Text), pubBuff.Bytes())
+			encryptText, err := EncryptDataRSA([]byte(c.Text), pubBuff.Bytes())
 			if err != nil {
 				t.Error(err, pubBuff.String())
 				return
 			}
 			// fmt.Println(privBuff.String())
-			decryptText, err := authtools.DecryptDataRSA(encryptText, privBuff.Bytes())
+			decryptText, err := DecryptDataRSA(encryptText, privBuff.Bytes())
 			if err != nil {
 				t.Error(err, privBuff.String())
 				return
@@ -81,7 +80,7 @@ func TestDecryptBegin(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
-			keys, err := authtools.GenerateRSAKeys()
+			keys, err := GenerateRSAKeys()
 			if err != nil {
 				t.Error(err)
 				return
@@ -91,7 +90,7 @@ func TestDecryptBegin(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			encryptText, err := authtools.EncryptDataRSA([]byte(c.Text), pub)
+			encryptText, err := EncryptDataRSA([]byte(c.Text), pub)
 			if err != nil {
 				t.Error(err)
 				return
@@ -101,7 +100,7 @@ func TestDecryptBegin(t *testing.T) {
 				t.Error(err, string(pub))
 				return
 			}
-			decryptText, err := authtools.DecryptDataRSA(encryptText, priv)
+			decryptText, err := DecryptDataRSA(encryptText, priv)
 			if err != nil {
 				t.Error(err, string(priv))
 				return
