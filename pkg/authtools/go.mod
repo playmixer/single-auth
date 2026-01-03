@@ -1,4 +1,4 @@
-module auth/pkg/authtools
+module github.com/playmixer/single-auth/pkg/authtool
 
 go 1.25.0
 
