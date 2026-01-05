@@ -54,6 +54,7 @@ func (s *Storage) migration() error {
 		&models.Application{},
 		&models.Session{},
 		&models.Role{},
+		&models.ApplicationEncrypto{},
 	); err != nil {
 		return fmt.Errorf("failed migrations: %w", err)
 	}
@@ -157,7 +158,7 @@ func (s *Storage) CreateApplication(ctx context.Context, title, link string) (*m
 
 func (s *Storage) GetApplication(ctx context.Context, appID string) (*models.Application, error) {
 	app := &models.Application{}
-	err := s.db.WithContext(ctx).Where("id = ?", appID).Preload("Roles").First(app).Error
+	err := s.db.WithContext(ctx).Where("id = ?", appID).Preload("Roles").Preload("Encrypto").First(app).Error
 	if err != nil {
 		return nil, errors.Join(err, apperror.ErrNotFoundData)
 	}
@@ -166,7 +167,7 @@ func (s *Storage) GetApplication(ctx context.Context, appID string) (*models.App
 }
 
 func (s *Storage) UpdateApplication(ctx context.Context, app *models.Application) error {
-	err := s.db.WithContext(ctx).Where("id = ?", app.ID).Updates(app).Error
+	err := s.db.WithContext(ctx).Where("id = ?", app.ID).Save(app).Error
 	if err != nil {
 		return fmt.Errorf("failed update applicatioh: %w", err)
 	}

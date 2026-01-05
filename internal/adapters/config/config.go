@@ -14,7 +14,8 @@ import (
 type Config struct {
 	API rest.Config
 	// Store    storage.Config
-	LogLevel  string `env:"LOG_LEVEL"`
+	LogLevel  string `env:"LOG_LEVEL" envDefault:"info"`
+	LogDir    string `env:"LOG_DIR" envDefault:"./logs"`
 	SecretKey string `env:"AUTH_SECRET_KEY"`
 	Store     storage.Config
 	Cache     storage.ConfigCache

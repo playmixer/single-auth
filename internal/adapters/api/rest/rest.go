@@ -195,6 +195,7 @@ func (s *Server) SetupRouter() *gin.Engine {
 		admin.POST("/applications", s.handlerAdminApplicationNew)
 		admin.POST("/applications/:appID/delete", s.handlerAdminRemoveApplication)
 		admin.POST("/applications/:appID/update", s.handlerAdminUpdApplication)
+		admin.GET("/applications/:appID/encrypt/download/private", s.handlerAdminApplicationPrivateDownload)
 		admin.GET("/applications/roles", s.handlerAdminApplicationRoles)
 		admin.POST("/applications/roles", s.handlerAdminApplicationRolesNew)
 		admin.POST("/applications/roles/:roleID/edit", s.handlerAdminApplicationUpdRole)

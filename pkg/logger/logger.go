@@ -2,8 +2,8 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,11 +19,14 @@ type Logger struct {
 	Info  func(msg string, fields ...zap.Field)
 	Debug func(msg string, fields ...zap.Field)
 	Error func(msg string, fields ...zap.Field)
+	Warn  func(msg string, fields ...zap.Field)
+	Sync  func() error
 }
 
 type loggerConfigurator struct {
 	level        string
 	logPath      string
+	logFilePath  string
 	isTerminal   bool
 	isFile       bool
 	isRotateFile bool
@@ -41,7 +44,8 @@ func SetLevel(level string) option {
 func SetLogPath(path string) option {
 	return func(l *loggerConfigurator) {
 		if path != "" {
-			l.logPath = path + "/log.log"
+			l.logPath = path
+			l.logFilePath = filepath.Join(path, "log.log")
 			l.isFile = true
 		}
 	}
@@ -64,7 +68,8 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 	l := &Logger{}
 	cfg := loggerConfigurator{
 		level:        "info",
-		logPath:      "./logs/log.log",
+		logPath:      "./logs",
+		logFilePath:  filepath.Join("./logs", "log.log"),
 		isTerminal:   true,
 		isFile:       false,
 		isRotateFile: true,
@@ -75,10 +80,10 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 		opt(&cfg)
 	}
 
-	if cfg.logPath != "" {
-		err := os.MkdirAll(filepath.Dir(cfg.logPath), tools.Mode0750)
+	if cfg.logFilePath != "" {
+		err := os.MkdirAll(filepath.Dir(cfg.logFilePath), tools.Mode0750)
 		if err != nil {
-			log.Println("failed create directory for logs")
+			return nil, errors.New("failed create directory for logs")
 		}
 	}
 
@@ -108,9 +113,9 @@ func New(ctx context.Context, options ...option) (*Logger, error) {
 func (l *Logger) prepareCore(cfg loggerConfigurator) *zap.Logger {
 	stdout := zapcore.AddSync(os.Stdout)
 	if cfg.isRotateFile {
-		cfg.logPath = "./logs/log_" + time.Now().Format(cfg.prefix) + ".log"
+		cfg.logFilePath = filepath.Join(cfg.logPath, "log_"+time.Now().Format(cfg.prefix)+".log")
 	}
-	f, err := os.OpenFile(cfg.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, tools.Mode0600)
+	f, err := os.OpenFile(cfg.logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, tools.Mode0600)
 	if err != nil {
 		panic(fmt.Errorf("failed create log file: %w", err))
 	}
@@ -142,23 +147,10 @@ func (l *Logger) prepareCore(cfg loggerConfigurator) *zap.Logger {
 	core := zapcore.NewTee(ouputs...)
 	z := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 	l.Info = z.Info
-	l.Debug = z.Debug
 	l.Error = z.Error
+	l.Debug = z.Debug
+	l.Warn = z.Warn
+	l.Sync = z.Sync
+
 	return z
 }
-
-func (l *Logger) Sync() {
-	l.l.Sync()
-}
-
-// func (l *Logger) Info(msg string, fields ...zap.Field) {
-// 	l.l.Info(msg, fields...)
-// }
-
-// func (l *Logger) Error(msg string, fields ...zap.Field) {
-// 	l.l.Error(msg, fields...)
-// }
-
-// func (l *Logger) Debug(msg string, fields ...zap.Field) {
-// 	l.l.Debug(msg, fields...)
-// }

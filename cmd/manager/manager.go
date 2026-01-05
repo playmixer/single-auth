@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"github.com/playmixer/single-auth/internal/adapters/config"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
 	"github.com/playmixer/single-auth/pkg/authtools"
-	"github.com/playmixer/single-auth/pkg/utils"
 )
 
 func main() {
@@ -66,7 +64,7 @@ func main() {
 			return
 		}
 
-		keys, err := utils.GenerateRSAKeys()
+		keys, err := authtools.GenerateRSAKeys()
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -79,7 +77,13 @@ func main() {
 			return
 		}
 
-		_, err = privateFile.WriteString("-----BEGIN RSA PRIVATE KEY-----\n" + base64.RawStdEncoding.EncodeToString(keys["private_key"]) + "\n-----END RSA PRIVATE KEY-----")
+		priv, err := keys.PrivateKeyBegin()
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		_, err = privateFile.Write(priv)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -93,7 +97,13 @@ func main() {
 			return
 		}
 
-		_, err = publickFile.WriteString("-----BEGIN PUBLIC KEY-----\n" + base64.RawStdEncoding.EncodeToString(keys["public_key"]) + "\n-----END PUBLIC KEY-----")
+		pub, err := keys.PublicKeyBegin()
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		_, err = publickFile.Write(pub)
 		if err != nil {
 			log.Fatal(err)
 			return

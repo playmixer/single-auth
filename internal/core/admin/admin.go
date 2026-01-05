@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
+	"github.com/playmixer/single-auth/pkg/authtools"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"github.com/playmixer/single-auth/pkg/utils"
 )
@@ -85,6 +86,27 @@ func (a *AdminPanel) GetApplication(ctx context.Context, appID string) (*models.
 }
 
 func (a *AdminPanel) UpdateApplication(ctx context.Context, app *models.Application) error {
+	if app.EncryptoEnable && app.Encrypto.ID == 0 {
+		keys, err := authtools.GenerateRSAKeys()
+		if err != nil {
+			return fmt.Errorf("failed generate RSA keys: %w", err)
+		}
+		pub, err := keys.PublicKeyBegin()
+		if err != nil {
+			return fmt.Errorf("failed generate publick key: %w", err)
+		}
+
+		priv, err := keys.PrivateKeyBegin()
+		if err != nil {
+			return fmt.Errorf("failed generate private key: %w", err)
+		}
+
+		app.Encrypto = models.ApplicationEncrypto{
+			PublicKey:  string(pub),
+			PrivateKey: string(priv),
+		}
+
+	}
 	return a.store.UpdateApplication(ctx, app)
 }
 

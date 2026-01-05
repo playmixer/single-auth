@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -457,6 +458,7 @@ func (s *Server) handlerAdminUpdApplication(c *gin.Context) {
 	var err error
 	title := c.PostForm("title")
 	link := c.PostForm("link")
+	encrypt := c.PostForm("encrypt") == "on"
 
 	if empty(title) || empty(link) {
 		c.Redirect(http.StatusMovedPermanently, "/admin/applications?error=not_valid_data&search_query="+title)
@@ -473,6 +475,7 @@ func (s *Server) handlerAdminUpdApplication(c *gin.Context) {
 
 	app.Title = title
 	app.AuthLink = link
+	app.EncryptoEnable = encrypt
 
 	err = s.admin.UpdateApplication(c.Request.Context(), app)
 	if err != nil {
@@ -481,6 +484,30 @@ func (s *Server) handlerAdminUpdApplication(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusMovedPermanently, "/admin/applications?search_query="+app.Title)
+}
+
+func (s *Server) handlerAdminApplicationPrivateDownload(c *gin.Context) {
+	appID := c.Param("appID")
+
+	app, err := s.admin.GetApplication(c.Request.Context(), appID)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications?error=user_not_found")
+		return
+	}
+
+	buff := bytes.NewBuffer([]byte{})
+	_, err = buff.WriteString(app.Encrypto.PrivateKey)
+	if err != nil {
+		s.log.Error("failed write private key", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": false,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+strings.ReplaceAll(strings.ToLower(app.Title), " ", "_")+"_private.pem")
+	c.Data(http.StatusOK, "application/octet-stream", buff.Bytes())
 }
 
 func (s *Server) handlerAdminApplicationRoles(c *gin.Context) {

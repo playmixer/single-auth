@@ -38,7 +38,7 @@ func run() error {
 		return fmt.Errorf("failed initialize config: %w", err)
 	}
 
-	lgr, err := logger.New(ctx, logger.SetLevel(cfg.LogLevel))
+	lgr, err := logger.New(ctx, logger.SetLevel(cfg.LogLevel), logger.SetLogPath(cfg.LogDir))
 	if err != nil {
 		return fmt.Errorf("failed initialize logger: %w", err)
 	}
@@ -95,5 +95,6 @@ func run() error {
 
 	<-ctxShutdown.Done()
 	lgr.Info("Service stoped")
+	lgr.Sync()
 	return nil
 }

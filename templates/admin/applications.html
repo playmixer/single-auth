@@ -148,9 +148,12 @@
             <td><a class="btnlink btnlink-primary" name="copyLink" data-link="{{ $baseURL }}/auth/login?appID={{ .ID }}">Copy link</a></td>
             <td style="display: flex; flex-direction: row;">
                 <a href="#" class="btnlink btnlink-primary" name="click_app_upd" data-appid="{{ .ID }}">Редактировать</a> | 
+                {{ if .EncryptoEnable }}
+                <a href="/admin/applications/{{ .ID }}/encrypt/download/private" target="_blank" class="btnlink btnlink-primary">Скачать ключ</a> | 
+                {{ end }}
                 <form action="/admin/applications/{{ .ID }}/delete" method="post" name="form_app_delete">
                     <input type="submit" class="btnlink btnlink-danger" value="Удалить">
-                </form>
+                </form> |
             </td>
         </tr>
         <tr class="hidden" id="app_upd_{{ .ID }}">
@@ -163,6 +166,11 @@
 
                     <label for="title">Auth link:</label>
                     <input type="text" id="link" name="link" value="{{ .AuthLink }}" required>
+
+                    <div style="display: flex; flex-direction: row; justify-content: start; align-items: center; margin: 5px 0;">
+                        <label for="encrypt" style="margin: 0;">Включить шифрование (RSA)</label>
+                        <input type="checkbox" name="encrypt" id="encrypt" style="height: 20px; width: 30px;"{{ if .EncryptoEnable }} checked{{ end }}>
+                    </div>
 
                     <input type="submit" value="Сохранить">
                 </form>

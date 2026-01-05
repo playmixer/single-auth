@@ -69,7 +69,7 @@ type Payload struct {
 }
 
 func (a *Auth) GetPayloadUser(ctx context.Context, appID string, data map[string]string) (params, appLink string, err error) {
-	app, err := a.getAppByID(ctx, appID)
+	app, err := a.store.GetApplication(ctx, appID)
 	if err != nil {
 		return "", "", fmt.Errorf("application not registered: %w", err)
 	}
@@ -78,6 +78,12 @@ func (a *Auth) GetPayloadUser(ctx context.Context, appID string, data map[string
 	bParams, err := json.Marshal(data)
 	if err != nil {
 		return "", "", fmt.Errorf("failed marshal data: %w", err)
+	}
+	if app.EncryptoEnable {
+		bParams, err = authtools.EncryptDataRSA(bParams, []byte(app.Encrypto.PublicKey))
+		if err != nil {
+			return "", "", fmt.Errorf("failed ecrypt params: %w", err)
+		}
 	}
 	params = base64.RawStdEncoding.EncodeToString(bParams)
 
@@ -92,10 +98,6 @@ func (a *Auth) VerifyJWT(signedData string) (map[string]string, bool) {
 // CreateJWT - Создает JWT ключ и записывает в него ID пользователя.
 func (a *Auth) CreateJWT(data map[string]string) (string, error) {
 	return authtools.CreateJWT(a.secretKey, data)
-}
-
-func (a *Auth) getAppByID(ctx context.Context, appID string) (*models.Application, error) {
-	return a.store.GetApplication(ctx, appID)
 }
 
 func (a *Auth) GenRefreshToken(ctx context.Context, userID uint) (string, error) {

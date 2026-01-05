@@ -36,13 +36,15 @@ func (us *Users) UnmarshalBinary(data []byte) error {
 }
 
 type Application struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
-	Title     string    `gorm:"index:idx_app_title,unique"`
-	AuthLink  string
-	Roles     []Role
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID             uuid.UUID `gorm:"type:uuid;primary_key"`
+	Title          string    `gorm:"index:idx_app_title,unique"`
+	AuthLink       string
+	Roles          []Role
+	EncryptoEnable bool
+	Encrypto       ApplicationEncrypto
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      gorm.DeletedAt `gorm:"index"`
 }
 
 func (a *Application) BeforeCreate(tx *gorm.DB) (err error) {
@@ -66,6 +68,15 @@ type Role struct {
 	Description string
 	// Application   Application
 	ApplicationID uuid.UUID `gorm:"not null,index:idx_role_application"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type ApplicationEncrypto struct {
+	ID            uint `gorm:"primarykey"`
+	PrivateKey    string
+	PublicKey     string
+	ApplicationID uuid.UUID
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
