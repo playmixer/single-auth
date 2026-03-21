@@ -4,110 +4,528 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Информация о пользователе</title>
+    <title>Профиль | Система аутентификации</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
         }
-        .user-info {
-            margin-bottom: 20px;
-        }
-        .user-info h2 {
-            color: #333;
-        }
-        .user-info p {
-            color: #666;
-        }
-        form {
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 5px;
-        }
-        form label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        form input {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        form input[type="submit"] {
-            width: 100%;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        form .error {
-            color: crimson;
-        }
-        .form-password {
-            max-width: 400px;
-        }
-        .breadcrumb {
-            display: flex;
-            justify-content: flex-start;
-            list-style: none;
+
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-top: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-links a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            color: var(--gray);
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .breadcrumb {
+            display: flex;
+            list-style: none;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
         .breadcrumb li {
             display: inline;
-            margin-right: 10px;
+            margin-right: 0.5rem;
         }
-        .breadcrumb li::after {
-            content: '>';
-            margin: 0 10px;
+
+        .breadcrumb li:not(:last-child)::after {
+            content: '›';
+            margin-left: 0.5rem;
         }
-        .breadcrumb li:last-child::after {
-            content: none;
-        }
-        .breadcrumb li a {
+
+        .breadcrumb a {
+            color: var(--primary);
             text-decoration: none;
-            color: #333;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .profile-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .profile-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            transition: var(--transition);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .card:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background: linear-gradient(var(--primary), var(--secondary));
+            border-radius: 4px;
+        }
+
+        .avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0 auto 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .user-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .info-item {
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--gray);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+            background-color: #fcfdfe;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Inter', sans-serif;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: linear-gradient(90deg, var(--primary-dark), #5a08a3);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 10px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .error-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .error-message::before {
+            content: "⚠";
+        }
+
+        .success-message {
+            color: var(--success);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .success-message::before {
+            content: "✓";
+        }
+
+        .input-error {
+            border-color: var(--danger) !important;
+            background-color: #fff5f5;
+        }
+
+        .input-success {
+            border-color: var(--success) !important;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--gray);
+            font-size: 0.875rem;
         }
     </style>
 </head>
 <body>
-<ul class="breadcrumb">
-    <li><a href="/auth/login">Главная</a></li>
-    <li>Профиль</li>
-</ul>
+    <div class="container">
+        <div class="header">
+            <div class="logo">AuthSystem</div>
+            <div class="nav-links">
+                <a href="/auth/login">Главная</a>
+                <a href="/profile" style="color: var(--primary);">Профиль</a>
+                <a href="/auth/logout">Выйти</a>
+            </div>
+        </div>
 
-<div class="user-info">
-    <h2>Информация о пользователе</h2>
-    <p>Имя: {{ .user.Login }}</p>
-    <p>Email: {{ .user.Email }}</p>
-    <p>Роль: Администратор</p>
-</div>
+        <ul class="breadcrumb">
+            <li><a href="/auth/login">Главная</a></li>
+            <li>Профиль</li>
+        </ul>
 
-<div class="form-password">
-    <form action="/profile/password" method="post">
-        <label for="current_password">Текущий пароль:</label>
-        <input type="password" id="current_password" name="current_password" required>
+        <div class="profile-section">
+            <div class="card">
+                <h2 class="card-title">Личная информация</h2>
+                <div class="avatar-large">{{ .user.Login | printf "%.1s" }}</div>
+                <div class="user-info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Логин</div>
+                        <div class="info-value">{{ .user.Login }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ .user.Email }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Роль</div>
+                        <div class="info-value">
+                            {{ if .user.IsAdmin }}Администратор{{ else }}Пользователь{{ end }}
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Дата регистрации</div>
+                        <div class="info-value">{{ .user.CreatedAt.Format "02.01.2006" }}</div>
+                    </div>
+                </div>
+            </div>
 
-        <label for="new_password">Новый пароль:</label>
-        <input type="password" id="new_password" name="new_password" required>
+            <div class="card">
+                <h2 class="card-title">Смена пароля</h2>
+                <form id="passwordForm" action="/profile/password" method="post">
+                    <div class="form-group">
+                        <label class="form-label" for="current_password">Текущий пароль</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="current_password" name="current_password" class="form-control" placeholder="Введите текущий пароль" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new_password">Новый пароль</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🔄</span>
+                            <input type="password" id="new_password" name="new_password" class="form-control" placeholder="Введите новый пароль" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirm_password">Подтверждение пароля</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">✅</span>
+                            <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Повторите новый пароль" required>
+                        </div>
+                    </div>
+                    <div id="formError" class="error-message"></div>
+                    <div id="formSuccess" class="success-message"></div>
+                    <button type="submit" class="btn">Обновить пароль</button>
+                </form>
+            </div>
+        </div>
 
-        <label for="confirm_password">Подтвердите пароль:</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
+        <div class="footer">
+            &copy; 2026 AuthSystem. Все права защищены.
+        </div>
+    </div>
 
-        <span class="error"></span>
-        <input type="submit" value="Сохранить изменения">
-    </form>
-</div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('passwordForm');
+            const currentPassword = document.getElementById('current_password');
+            const newPassword = document.getElementById('new_password');
+            const confirmPassword = document.getElementById('confirm_password');
+            const errorEl = document.getElementById('formError');
+            const successEl = document.getElementById('formSuccess');
+            const submitBtn = form.querySelector('.btn');
 
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const errorString = urlParams.get('error');
-    if (errorString) {
-        error = document.querySelector("[class='error']")
-        error.innerHTML = errorString
-    }
-</script>
+            function showError(message) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+                successEl.classList.remove('show');
+            }
+
+            function showSuccess(message) {
+                successEl.textContent = message;
+                successEl.classList.add('show');
+                errorEl.classList.remove('show');
+            }
+
+            function clearMessages() {
+                errorEl.classList.remove('show');
+                successEl.classList.remove('show');
+            }
+
+            function validatePassword() {
+                const newPass = newPassword.value;
+                const confirmPass = confirmPassword.value;
+                if (newPass.length < 3) {
+                    showError('Новый пароль должен содержать не менее 3 символов.');
+                    return false;
+                }
+                if (newPass !== confirmPass) {
+                    showError('Пароли не совпадают.');
+                    return false;
+                }
+                return true;
+            }
+
+            newPassword.addEventListener('input', clearMessages);
+            confirmPassword.addEventListener('input', clearMessages);
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                if (!validatePassword()) {
+                    return;
+                }
+
+                submitBtn.classList.add('loading');
+                submitBtn.disabled = true;
+
+                const formData = new FormData(form);
+                const urlEncoded = new URLSearchParams(formData).toString();
+
+                try {
+                    const response = await fetch('/profile/password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: urlEncoded,
+                    });
+
+                    // Обработка редиректа
+                    if (response.status >= 300 && response.status < 400) {
+                        const location = response.headers.get('Location');
+                        if (location) {
+                            // Если редирект содержит ошибку, извлекаем её
+                            const url = new URL(location, window.location.origin);
+                            const errorParam = url.searchParams.get('error');
+                            if (errorParam) {
+                                showError(decodeURIComponent(errorParam));
+                            } else {
+                                // Успешный редирект на /profile
+                                showSuccess('Пароль успешно изменён!');
+                                form.reset();
+                                // Можно обновить страницу через секунду
+                                setTimeout(() => {
+                                    window.location.href = '/profile';
+                                }, 1500);
+                            }
+                        } else {
+                            showError('Неизвестный редирект.');
+                        }
+                    } else if (response.ok) {
+                        // На случай, если сервер вернёт 200 (маловероятно)
+                        showSuccess('Пароль успешно изменён!');
+                        form.reset();
+                    } else {
+                        showError('Ошибка сервера: ' + response.status);
+                    }
+                } catch (error) {
+                    showError('Сетевая ошибка. Проверьте подключение.');
+                } finally {
+                    submitBtn.classList.remove('loading');
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Обработка ошибки из query параметра
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorString = urlParams.get('error');
+            if (errorString) {
+                showError(decodeURIComponent(errorString));
+            }
+            const successString = urlParams.get('success');
+            if (successString) {
+                showSuccess(decodeURIComponent(successString));
+            }
+        });
+    </script>
 </body>
 </html>
 {{ end }}
