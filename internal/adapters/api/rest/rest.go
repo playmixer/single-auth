@@ -59,7 +59,9 @@ type AdminManager interface {
 	UpdateApplication(ctx context.Context, app *models.Application) error
 	RemoveApplication(ctx context.Context, appID string) error
 	CreateRoleApplication(ctx context.Context, appID string, name string, description string) (*models.Role, error)
+	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
 	UpdateRole(ctx context.Context, roleID uint, name, description string) error
+	RemoveRole(ctx context.Context, roleID uint) error
 }
 
 type Cache interface {
@@ -200,6 +202,7 @@ func (s *Server) SetupRouter() *gin.Engine {
 		admin.GET("/applications/roles", s.handlerAdminApplicationRoles)
 		admin.POST("/applications/roles", s.handlerAdminApplicationRolesNew)
 		admin.POST("/applications/roles/:roleID/edit", s.handlerAdminApplicationUpdRole)
+		admin.POST("/applications/roles/:roleID/delete", s.handlerAdminApplicationRemoveRole)
 
 	}
 

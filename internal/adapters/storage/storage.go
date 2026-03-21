@@ -39,6 +39,7 @@ type Storage interface {
 	CreateRole(ctx context.Context, appID, name, description string) (*models.Role, error)
 	UpdRole(ctx context.Context, role *models.Role) error
 	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
+	RemoveRole(ctx context.Context, roleID uint) error
 	UpdUserRoles(ctx context.Context, user *models.User, roles []models.Role) error
 
 	Close() error

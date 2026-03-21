@@ -287,6 +287,14 @@ func (s *Storage) GetRole(ctx context.Context, roleID uint) (*models.Role, error
 	return role, nil
 }
 
+func (s *Storage) RemoveRole(ctx context.Context, roleID uint) error {
+	err := s.db.WithContext(ctx).Where("id = ?", roleID).Delete(&models.Role{}).Error
+	if err != nil {
+		return fmt.Errorf("failed remove role: %w", err)
+	}
+	return nil
+}
+
 func (s *Storage) UpdUserRoles(ctx context.Context, user *models.User, roles []models.Role) error {
 	err := s.db.WithContext(ctx).Model(user).Association("Roles").Replace(roles)
 	if err != nil {
