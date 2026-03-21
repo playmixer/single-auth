@@ -63,6 +63,17 @@ type AdminManager interface {
 	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
 	UpdateRole(ctx context.Context, roleID uint, name, description string) error
 	RemoveRole(ctx context.Context, roleID uint) error
+
+	// Stats
+	CountUsers(ctx context.Context) (int64, error)
+	CountApplications(ctx context.Context) (int64, error)
+	CountActiveSessions(ctx context.Context) (int64, error)
+	CountRoles(ctx context.Context) (int64, error)
+	// Stats for period
+	CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
 }
 
 type Cache interface {

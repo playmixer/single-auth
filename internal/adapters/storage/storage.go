@@ -42,6 +42,18 @@ type Storage interface {
 	RemoveRole(ctx context.Context, roleID uint) error
 	UpdUserRoles(ctx context.Context, user *models.User, roles []models.Role) error
 
+	// Stats
+	CountUsers(ctx context.Context) (int64, error)
+	CountApplications(ctx context.Context) (int64, error)
+	CountActiveSessions(ctx context.Context) (int64, error)
+	CountRoles(ctx context.Context) (int64, error)
+
+	// Stats over period
+	CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+
 	Close() error
 }
 

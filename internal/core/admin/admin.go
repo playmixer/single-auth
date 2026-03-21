@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	"github.com/playmixer/single-auth/pkg/authtools"
@@ -31,6 +32,17 @@ type Store interface {
 	UpdRole(ctx context.Context, role *models.Role) error
 	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
 	RemoveRole(ctx context.Context, roleID uint) error
+
+	// Stats
+	CountUsers(ctx context.Context) (int64, error)
+	CountApplications(ctx context.Context) (int64, error)
+	CountActiveSessions(ctx context.Context) (int64, error)
+	CountRoles(ctx context.Context) (int64, error)
+	// Stats for period
+	CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
 }
 
 type AdminPanel struct {
@@ -190,4 +202,36 @@ func (a *AdminPanel) UpdRolesUser(ctx context.Context, userID uint, roleIDs []ui
 	}
 
 	return nil
+}
+
+func (a *AdminPanel) CountUsers(ctx context.Context) (int64, error) {
+	return a.store.CountUsers(ctx)
+}
+
+func (a *AdminPanel) CountApplications(ctx context.Context) (int64, error) {
+	return a.store.CountApplications(ctx)
+}
+
+func (a *AdminPanel) CountActiveSessions(ctx context.Context) (int64, error) {
+	return a.store.CountActiveSessions(ctx)
+}
+
+func (a *AdminPanel) CountRoles(ctx context.Context) (int64, error) {
+	return a.store.CountRoles(ctx)
+}
+
+func (a *AdminPanel) CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	return a.store.CountUsersCreatedAfter(ctx, after)
+}
+
+func (a *AdminPanel) CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	return a.store.CountApplicationsCreatedAfter(ctx, after)
+}
+
+func (a *AdminPanel) CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	return a.store.CountRolesCreatedAfter(ctx, after)
+}
+
+func (a *AdminPanel) CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	return a.store.CountSessionsCreatedAfter(ctx, after)
 }
