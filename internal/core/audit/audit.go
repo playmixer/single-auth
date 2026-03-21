@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/playmixer/single-auth/internal/adapters/storage/audit"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
@@ -99,6 +100,26 @@ func (m *Manager) GetAuditLogs(ctx context.Context, filter audit.AuditFilter) ([
 // GetSystemLogs возвращает системные логи по фильтру
 func (m *Manager) GetSystemLogs(ctx context.Context, filter audit.SystemFilter) ([]models.SystemLog, error) {
 	return m.store.FindSystemLogs(ctx, filter)
+}
+
+// GetAuditMetrics возвращает агрегированные метрики аудита за период
+func (m *Manager) GetAuditMetrics(ctx context.Context, from, to time.Time) (*audit.AuditMetrics, error) {
+	return m.store.GetAuditMetrics(ctx, from, to)
+}
+
+// GetSystemMetrics возвращает агрегированные метрики системных логов за период
+func (m *Manager) GetSystemMetrics(ctx context.Context, from, to time.Time) (*audit.SystemMetrics, error) {
+	return m.store.GetSystemMetrics(ctx, from, to)
+}
+
+// GetAuditActivityByHour возвращает количество записей аудита по часам за последние hours часов
+func (m *Manager) GetAuditActivityByHour(ctx context.Context, hours int) ([]audit.TimeSeriesPoint, error) {
+	return m.store.GetAuditActivityByHour(ctx, hours)
+}
+
+// GetTopUsers возвращает топ пользователей по количеству действий за весь период
+func (m *Manager) GetTopUsers(ctx context.Context, limit int) ([]audit.TopUser, error) {
+	return m.store.GetTopUsers(ctx, limit)
 }
 
 // Middleware helpers

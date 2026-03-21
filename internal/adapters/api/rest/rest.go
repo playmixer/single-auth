@@ -224,7 +224,8 @@ func (s *Server) SetupRouter() *gin.Engine {
 		admin.GET("/audit/logs", s.handlerAuditLogs)
 		admin.GET("/audit/logs/export", s.handlerAuditExport)
 		admin.GET("/system/logs", s.handlerSystemLogs)
-		admin.GET("/metrics", s.handlerMetrics)
+		admin.GET("/metrics", s.handlerMetricsPage)
+		admin.GET("/metrics/data", s.handlerMetrics)
 	}
 
 	return r

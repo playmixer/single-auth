@@ -212,14 +212,126 @@ func (s *Server) handlerAuditExport(c *gin.Context) {
 	c.JSON(http.StatusNotImplemented, gin.H{"error": "export not implemented yet"})
 }
 
-// handlerMetrics возвращает метрики (заглушка)
+// handlerMetrics возвращает метрики аудита и системных логов
 func (s *Server) handlerMetrics(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "metrics not implemented yet"})
+	if s.audit == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "audit service unavailable"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Парсинг параметров периода
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+	hoursStr := c.Query("hours")
+	limitStr := c.Query("limit")
+
+	// По умолчанию: последние 24 часа
+	defaultFrom := time.Now().Add(-24 * time.Hour)
+	defaultTo := time.Now()
+
+	var from, to time.Time
+	if fromStr != "" {
+		parsed, err := time.Parse(time.RFC3339, fromStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from date"})
+			return
+		}
+		from = parsed
+	} else {
+		from = defaultFrom
+	}
+
+	if toStr != "" {
+		parsed, err := time.Parse(time.RFC3339, toStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to date"})
+			return
+		}
+		to = parsed
+	} else {
+		to = defaultTo
+	}
+
+	// Количество часов для временного ряда активности
+	hours := 24
+	if hoursStr != "" {
+		h, err := strconv.Atoi(hoursStr)
+		if err != nil || h < 1 || h > 720 { // максимум 30 дней
+			c.JSON(http.StatusBadRequest, gin.H{"error": "hours must be between 1 and 720"})
+			return
+		}
+		hours = h
+	}
+
+	// Лимит для топа пользователей
+	limit := 10
+	if limitStr != "" {
+		l, err := strconv.Atoi(limitStr)
+		if err != nil || l < 1 || l > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "limit must be between 1 and 100"})
+			return
+		}
+		limit = l
+	}
+
+	// Получение метрик аудита
+	auditMetrics, err := s.audit.GetAuditMetrics(ctx, from, to)
+	if err != nil {
+		s.log.Error("failed to get audit metrics", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve audit metrics"})
+		return
+	}
+
+	// Получение метрик системных логов
+	systemMetrics, err := s.audit.GetSystemMetrics(ctx, from, to)
+	if err != nil {
+		s.log.Error("failed to get system metrics", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve system metrics"})
+		return
+	}
+
+	// Получение временного ряда активности
+	activity, err := s.audit.GetAuditActivityByHour(ctx, hours)
+	if err != nil {
+		s.log.Error("failed to get audit activity", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve activity"})
+		return
+	}
+
+	// Получение топа пользователей
+	topUsers, err := s.audit.GetTopUsers(ctx, limit)
+	if err != nil {
+		s.log.Error("failed to get top users", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve top users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"audit_metrics":    auditMetrics,
+		"system_metrics":   systemMetrics,
+		"activity_by_hour": activity,
+		"top_users":        topUsers,
+		"period": gin.H{
+			"from": from,
+			"to":   to,
+		},
+		"hours": hours,
+		"limit": limit,
+	})
 }
 
 // handlerAuditPage отображает страницу аудита
 func (s *Server) handlerAuditPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/audit_logs.html", gin.H{
 		"title": "Аудит логи",
+	})
+}
+
+// handlerMetricsPage отображает страницу метрик
+func (s *Server) handlerMetricsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/metrics.html", gin.H{
+		"title": "Метрики аудита",
 	})
 }
