@@ -190,6 +190,7 @@ func (s *Server) SetupRouter() *gin.Engine {
 	{
 		admin.GET("/", s.handlerAdmin)
 		admin.GET("/users", s.handlerAdminUsers)
+
 		admin.POST("/users", s.handlerAdminNewUser)
 		admin.POST("/users/:userID/delete", s.handlerAdminRemoveUser)
 		admin.POST("/users/:userID/update", s.handlerAdminUpdUser)
