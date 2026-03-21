@@ -61,6 +61,11 @@
             <!-- Заполняется JavaScript -->
         </div>
 
+        <h2>Метрики аутентификации</h2>
+        <div class="metrics-grid" id="authMetricsGrid">
+            <!-- Заполняется JavaScript -->
+        </div>
+
         <h2>Системные метрики</h2>
         <div class="metrics-grid" id="systemMetricsGrid">
             <!-- Заполняется JavaScript -->
@@ -269,6 +274,19 @@
             auditGrid.appendChild(createMetricCard('Успешно', am.by_status?.success || 0, 'Успешные действия'));
             auditGrid.appendChild(createMetricCard('Ошибки', am.by_status?.error || 0, 'Неуспешные действия'));
             // Add more cards for top resource/action if needed
+        }
+
+        // Auth metrics
+        const authGrid = document.getElementById('authMetricsGrid');
+        authGrid.innerHTML = '';
+        if (data.audit_metrics) {
+            const am = data.audit_metrics;
+            const loginCount = am.by_action?.login || 0;
+            const logoutCount = am.by_action?.logout || 0;
+            const authResourceCount = am.by_resource?.auth || 0;
+            authGrid.appendChild(createMetricCard('Входы (логины)', loginCount, 'Все попытки входа'));
+            authGrid.appendChild(createMetricCard('Выходы', logoutCount, 'Все выходы из системы'));
+            authGrid.appendChild(createMetricCard('События аутентификации', authResourceCount, 'Все события с resource_type=auth'));
         }
 
         // System metrics
