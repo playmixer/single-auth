@@ -609,7 +609,7 @@ func (s *Server) handlerAdminApplicationRoles(c *gin.Context) {
 		"app":          app,
 		"baseURL":      s.baseURL,
 		"error":        errMessage,
-		"ActiveTab":    "applications",
+		"ActiveTab":    "application_roles",
 		"ContentBlock": "content_application_roles",
 		"Title":        "Роли приложения",
 		"HeaderTitle":  "Роли приложения",

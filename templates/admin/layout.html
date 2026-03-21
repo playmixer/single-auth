@@ -30,7 +30,7 @@
         <ul class="nav-tabs">
             <li><a href="/admin" {{ if eq .ActiveTab "overview" }}class="active"{{ end }}>Обзор</a></li>
             <li><a href="/admin/users" {{ if eq .ActiveTab "users" }}class="active"{{ end }}>Пользователи</a></li>
-            <li><a href="/admin/applications" {{ if eq .ActiveTab "applications" }}class="active"{{ end }}>Приложения</a></li>
+            <li><a href="/admin/applications" {{ if or (eq .ActiveTab "applications") (eq .ActiveTab "application_roles") }}class="active"{{ end }}>Приложения</a></li>
             <li><a href="/admin/audit" {{ if eq .ActiveTab "audit" }}class="active"{{ end }}>Аудит логи</a></li>
             <li><a href="/admin/system" {{ if eq .ActiveTab "system" }}class="active"{{ end }}>Системные логи</a></li>
             <li><a href="/admin/metrics" {{ if eq .ActiveTab "metrics" }}class="active"{{ end }}>Метрики</a></li>
@@ -43,6 +43,8 @@
                 {{ template "content_users" . }}
             {{ else if eq .ActiveTab "applications" }}
                 {{ template "content_applications" . }}
+            {{ else if eq .ActiveTab "application_roles" }}
+                {{ template "content_application_roles" . }}
             {{ else if eq .ActiveTab "audit" }}
                 {{ template "content_audit" . }}
             {{ else if eq .ActiveTab "system" }}
