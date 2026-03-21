@@ -600,3 +600,6 @@ func (s *Server) handlerAdminApplicationUpdRole(c *gin.Context) {
 
 	c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID)
 }
+func (s *Server) handlerRoot(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/auth/login")
+}

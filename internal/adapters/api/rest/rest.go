@@ -170,6 +170,7 @@ func (s *Server) SetupRouter() *gin.Engine {
 		s.middlewareLogger(),
 	)
 
+	r.GET("/", s.handlerRoot)
 	r.GET("/auth/login", s.handlerLogin)
 	r.GET("/auth/logout", s.handlerLogut)
 	r.POST("/api/login", s.handlerAPILogin)
