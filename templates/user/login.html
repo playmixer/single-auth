@@ -78,7 +78,13 @@
         const params = new Proxy(new URLSearchParams(window.location.search), {
             get: (searchParams, prop) => searchParams.get(prop),
         });
-        let appID = params.appID;
+        let appID = "{{ .appID }}";
+        let callback = "{{ .callback }}";
+        let state = "{{ .state }}";
+        // fallback to query params if empty
+        if (!appID) appID = params.appID;
+        if (!callback) callback = params.callback;
+        if (!state) state = params.state;
 
         const authform = document.querySelector("#authform")
         authform?.addEventListener("submit", async function(e) {
@@ -101,7 +107,39 @@
             authError.innerHTML
             const data = await response.json()
             if (response.status == 200) {
-                console.log("reload")
+                // успешный логин
+                if (appID) {
+                    // получаем параметры для приложения
+                    try {
+                        const infoResponse = await fetch(`/api/user/authInfo?appID=${appID}`, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                        })
+                        if (infoResponse.status == 200) {
+                            const info = await infoResponse.json()
+                            try {
+                                const url = new URL(info.appLink)
+                                url.searchParams.append("paramsURI", info.params)
+                                if (callback) {
+                                    url.searchParams.append("callback", callback)
+                                }
+                                if (state) {
+                                    url.searchParams.append("state", state)
+                                }
+                                window.location.href = url.toString()
+                                return
+                            } catch (err) {
+                                console.error("Invalid appLink URL", err)
+                            }
+                        } else {
+                            console.error("Failed to get app info", await infoResponse.json())
+                        }
+                    } catch (err) {
+                        console.error("Error fetching app info", err)
+                    }
+                }
+                // если appID нет или произошла ошибка, перезагружаем страницу
                 window.location.reload()
             } else {
                 authError.innerHTML = data.error
@@ -111,7 +149,7 @@
         
         async function getAppInfo() {
             if (appID == null) {
-                    authError.innerHTML = "Не передан идентифткатор приложения"
+                authError.innerHTML = "Не передан идентификатор приложения"
                 return
             }
             const response = await fetch(`/api/user/authInfo?appID=${appID}`, {
@@ -119,26 +157,40 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
             })
             const data = await response.json()
             if (response.status == 200) {
-                const authLink = document.querySelector("#authLink")
+                // редиректим на appLink с параметрами
                 const url = new URL(data.appLink)
                 url.searchParams.append("paramsURI", data.params)
+                if (callback) {
+                    url.searchParams.append("callback", callback)
+                }
+                if (state) {
+                    url.searchParams.append("state", state)
+                }
                 const newURL = url.toString()
 
-                authLink.href = newURL
-                let t = 3
-                authLink.innerHTML = `Перейти в приложение (${t} сек)`
-                await function(ttl) {
-                    setInterval(function() {
-                        authLink.innerHTML = `Перейти в приложение (${ttl} сек)`
-                        ttl = ttl - 1
-                    }, 1000)
-                }(t)
-                setTimeout(function() {
+                // если callback не передан, показываем стандартную ссылку с таймером
+                if (!callback) {
+                    const authLink = document.querySelector("#authLink")
+                    authLink.href = newURL
+                    let t = 3
+                    authLink.innerHTML = `Перейти в приложение (${t} сек)`
+                    await function(ttl) {
+                        setInterval(function() {
+                            authLink.innerHTML = `Перейти в приложение (${ttl} сек)`
+                            ttl = ttl - 1
+                        }, 1000)
+                    }(t)
+                    setTimeout(function() {
+                        window.location.href = newURL
+                    }, 3000)
+                } else {
+                    // если callback передан, сразу редиректим
                     window.location.href = newURL
-                }, 3000)
+                }
             } else {
                 authError.innerHTML = data.error
             }

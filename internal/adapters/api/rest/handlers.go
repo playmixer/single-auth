@@ -20,10 +20,17 @@ func (s *Server) handlerLogin(c *gin.Context) {
 	s.middlewareCheckCookies()(c)
 	isAuth, user, _ := s.isAuthenticate(c)
 
+	appID := c.Query("appID")
+	callback := c.Query("callback")
+	state := c.Query("state")
+
 	c.HTML(http.StatusOK, "user/login.html", gin.H{
-		"status": "ok",
-		"isAuth": isAuth,
-		"user":   user,
+		"status":   "ok",
+		"isAuth":   isAuth,
+		"user":     user,
+		"appID":    appID,
+		"callback": callback,
+		"state":    state,
 	})
 }
 
