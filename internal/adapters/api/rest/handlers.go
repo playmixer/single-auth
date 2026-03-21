@@ -223,9 +223,13 @@ func (s *Server) handlerAdmin(c *gin.Context) {
 	isAuth, user, _ := s.isAuthenticate(c)
 
 	c.HTML(http.StatusOK, "admin/index.html", gin.H{
-		"status": "ok",
-		"isAuth": isAuth,
-		"user":   user,
+		"status":       "ok",
+		"isAuth":       isAuth,
+		"user":         user,
+		"ActiveTab":    "overview",
+		"ContentBlock": "content_overview",
+		"Title":        "Админ-панель",
+		"HeaderTitle":  "Обзор",
 	})
 }
 
@@ -258,6 +262,10 @@ func (s *Server) handlerAdminUsers(c *gin.Context) {
 		"applications": applications,
 		"error":        errMessage,
 		"search":       search,
+		"ActiveTab":    "users",
+		"ContentBlock": "content_users",
+		"Title":        "Пользователи",
+		"HeaderTitle":  "Управление пользователями",
 	})
 }
 
@@ -426,6 +434,10 @@ func (s *Server) handlerAdminApplications(c *gin.Context) {
 		"error":        errMessage,
 		"applications": apps,
 		"baseURL":      s.baseURL,
+		"ActiveTab":    "applications",
+		"ContentBlock": "content_applications",
+		"Title":        "Приложения",
+		"HeaderTitle":  "Управление приложениями",
 	})
 }
 
@@ -538,9 +550,13 @@ func (s *Server) handlerAdminApplicationRoles(c *gin.Context) {
 	s.log.Debug("app", zap.Any("app", app))
 
 	c.HTML(http.StatusOK, "admin/application_roles.html", gin.H{
-		"app":     app,
-		"baseURL": s.baseURL,
-		"error":   errMessage,
+		"app":          app,
+		"baseURL":      s.baseURL,
+		"error":        errMessage,
+		"ActiveTab":    "applications",
+		"ContentBlock": "content_application_roles",
+		"Title":        "Роли приложения",
+		"HeaderTitle":  "Роли приложения",
 	})
 }
 

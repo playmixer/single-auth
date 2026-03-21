@@ -1,0 +1,62 @@
+{{ define "admin/layout.html" }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} | Single Auth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        {{ block "breadcrumb" . }}
+        <ul class="breadcrumb">
+            <li><a href="/admin/">Dashboard</a></li>
+            <li>{{ .BreadcrumbCurrent }}</li>
+        </ul>
+        {{ end }}
+
+        <div class="header">
+            <h1>{{ .HeaderTitle }}</h1>
+            <div class="flex gap-2">
+                <a href="/profile" class="btn btn-outline">Мой профиль</a>
+                <a href="/auth/logout" class="btn btn-danger">Выйти</a>
+            </div>
+        </div>
+
+        <ul class="nav-tabs">
+            <li><a href="/admin" {{ if eq .ActiveTab "overview" }}class="active"{{ end }}>Обзор</a></li>
+            <li><a href="/admin/users" {{ if eq .ActiveTab "users" }}class="active"{{ end }}>Пользователи</a></li>
+            <li><a href="/admin/applications" {{ if eq .ActiveTab "applications" }}class="active"{{ end }}>Приложения</a></li>
+            <li><a href="/admin/audit" {{ if eq .ActiveTab "audit" }}class="active"{{ end }}>Аудит логи</a></li>
+            <li><a href="/admin/system" {{ if eq .ActiveTab "system" }}class="active"{{ end }}>Системные логи</a></li>
+            <li><a href="/admin/metrics" {{ if eq .ActiveTab "metrics" }}class="active"{{ end }}>Метрики</a></li>
+        </ul>
+
+        <main>
+            {{ if eq .ActiveTab "overview" }}
+                {{ template "content_overview" . }}
+            {{ else if eq .ActiveTab "users" }}
+                {{ template "content_users" . }}
+            {{ else if eq .ActiveTab "applications" }}
+                {{ template "content_applications" . }}
+            {{ else if eq .ActiveTab "audit" }}
+                {{ template "content_audit" . }}
+            {{ else if eq .ActiveTab "system" }}
+                {{ template "content_system" . }}
+            {{ else if eq .ActiveTab "metrics" }}
+                {{ template "content_metrics" . }}
+            {{ else }}
+                {{/* fallback */}}
+                <p>Контент не найден</p>
+            {{ end }}
+        </main>
+    </div>
+
+    {{ block "extra_js" . }}{{ end }}
+</body>
+</html>
+{{ end }}

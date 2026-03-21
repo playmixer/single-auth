@@ -1,327 +1,276 @@
 {{ define "admin/audit_logs.html" }}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audit Logs - Single Auth</title>
-    <link rel="stylesheet" href="/css/admin.css">
-    <style>
-        .audit-filters {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-        .filter-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-        .filter-group label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-        }
-        .filter-group input, .filter-group select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-        .btn-apply {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-apply:hover {
-            background: #0056b3;
-        }
-        .logs-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .logs-table th, .logs-table td {
-            border: 1px solid #dee2e6;
-            padding: 0.75rem;
-            text-align: left;
-        }
-        .logs-table th {
-            background-color: #e9ecef;
-            font-weight: 600;
-        }
-        .logs-table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .status-success {
-            color: #28a745;
-            font-weight: 500;
-        }
-        .status-error {
-            color: #dc3545;
-            font-weight: 500;
-        }
-        .pagination {
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        .pagination a {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            text-decoration: none;
-            color: #007bff;
-        }
-        .pagination a.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .details-popup {
-            max-width: 500px;
-            max-height: 300px;
-            overflow: auto;
-            white-space: pre-wrap;
-            font-family: monospace;
-            background: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-        }
-        .audit-tabs {
-            display: flex;
-            gap: 0.5rem;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 0.5rem;
-        }
-        .tab-btn {
-            padding: 0.5rem 1rem;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px 4px 0 0;
-            cursor: pointer;
-            font-weight: 500;
-            color: #495057;
-        }
-        .tab-btn:hover {
-            background: #e9ecef;
-        }
-        .tab-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Audit Logs</h1>
-            <nav>
-                <a href="/admin/">Dashboard</a> |
-                <a href="/admin/users">Users</a> |
-                <a href="/admin/applications">Applications</a> |
-                <a href="/admin/audit/logs" class="active">Audit Logs</a> |
-                <a href="/admin/system/logs">System Logs</a> |
-                <a href="/admin/metrics">Metrics</a>
-            </nav>
-        </header>
+{{ template "admin/layout.html" . }}
+{{ end }}
 
-        <div class="audit-tabs" style="margin-bottom: 1.5rem;">
-            <button class="tab-btn active" data-category="">All</button>
-            <button class="tab-btn" data-category="auth">Authorization</button>
-            <button class="tab-btn" data-category="admin">Admin Panel</button>
-        </div>
+{{ define "breadcrumb" }}
+<ul class="breadcrumb">
+    <li><a href="/admin/">Дашборд</a></li>
+    <li>Аудит логи</li>
+</ul>
+{{ end }}
 
-        <section class="audit-filters">
-            <h3>Filter Logs</h3>
-            <form id="filterForm" method="GET">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="user_id">User ID</label>
-                        <input type="number" id="user_id" name="user_id" placeholder="e.g., 123">
-                    </div>
-                    <div class="filter-group">
-                        <label for="action">Action</label>
-                        <input type="text" id="action" name="action" placeholder="e.g., login">
-                    </div>
-                    <div class="filter-group">
-                        <label for="resource_type">Resource Type</label>
-                        <select id="resource_type" name="resource_type">
-                            <option value="">Any</option>
-                            <option value="auth">Auth</option>
-                            <option value="user">User</option>
-                            <option value="application">Application</option>
-                            <option value="role">Role</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="resource_id">Resource ID</label>
-                        <input type="text" id="resource_id" name="resource_id" placeholder="e.g., 456">
-                    </div>
-                    <div class="filter-group">
-                        <label for="status">Status</label>
-                        <select id="status" name="status">
-                            <option value="">Any</option>
-                            <option value="success">Success</option>
-                            <option value="error">Error</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="from">From (UTC)</label>
-                        <input type="datetime-local" id="from" name="from">
-                    </div>
-                    <div class="filter-group">
-                        <label for="to">To (UTC)</label>
-                        <input type="datetime-local" id="to" name="to">
-                    </div>
-                    <div class="filter-group">
-                        <button type="submit" class="btn-apply">Apply Filters</button>
-                    </div>
-                </div>
-            </form>
-        </section>
+{{/* nav_tabs removed - navigation is now handled by layout */}}
 
-        <section>
-            <h3>Log Entries</h3>
-            <table class="logs-table">
-                <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>User ID</th>
-                        <th>IP Address</th>
-                        <th>Action</th>
-                        <th>Resource</th>
-                        <th>Status</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody id="logsBody">
-                    <!-- Filled by JavaScript -->
-                </tbody>
-            </table>
-            <div class="pagination" id="pagination">
-                <!-- Filled by JavaScript -->
+{{ define "content_audit" }}
+<div class="category-tabs">
+    <button class="tab-btn active" data-category="">Все</button>
+    <button class="tab-btn" data-category="auth">Авторизация</button>
+    <button class="tab-btn" data-category="admin">Админ-панель</button>
+</div>
+
+<section class="card mb-3">
+    <h3 class="card-title">Фильтр логов</h3>
+    <form id="filterForm" method="GET">
+        <div class="filter-row flex flex-wrap gap-2 align-items-end">
+            <div class="form-group flex-1 min-width-200">
+                <label for="user_id" class="form-label">ID пользователя</label>
+                <input type="number" id="user_id" name="user_id" placeholder="например, 123" class="form-control">
             </div>
-        </section>
+            <div class="form-group flex-1 min-width-200">
+                <label for="action" class="form-label">Действие</label>
+                <input type="text" id="action" name="action" placeholder="например, login" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="resource_type" class="form-label">Тип ресурса</label>
+                <select id="resource_type" name="resource_type" class="form-control">
+                    <option value="">Любой</option>
+                    <option value="auth">Auth</option>
+                    <option value="user">User</option>
+                    <option value="application">Application</option>
+                    <option value="role">Role</option>
+                </select>
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="resource_id" class="form-label">ID ресурса</label>
+                <input type="text" id="resource_id" name="resource_id" placeholder="например, 456" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="status" class="form-label">Статус</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="">Любой</option>
+                    <option value="success">Успех</option>
+                    <option value="error">Ошибка</option>
+                </select>
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="from" class="form-label">С (UTC)</label>
+                <input type="datetime-local" id="from" name="from" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="to" class="form-label">По (UTC)</label>
+                <input type="datetime-local" id="to" name="to" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <button type="submit" class="btn">Применить фильтры</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h3 class="card-title">Записи логов</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>ID пользователя</th>
+                    <th>IP адрес</th>
+                    <th>Действие</th>
+                    <th>Ресурс</th>
+                    <th>Статус</th>
+                    <th>Детали</th>
+                </tr>
+            </thead>
+            <tbody id="logsBody">
+                <!-- Заполняется JavaScript -->
+            </tbody>
+        </table>
     </div>
+    <div class="pagination" id="pagination">
+        <!-- Заполняется JavaScript -->
+    </div>
+</section>
+<style>
+    .category-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+<script>
+    console.log('Audit logs page script loaded');
 
-    <script>
-        async function loadLogs() {
-            const params = new URLSearchParams(window.location.search);
-            const response = await fetch(`/admin/audit/logs?${params.toString()}`);
-            if (!response.ok) {
-                alert('Failed to load logs');
-                return;
+    // Преобразование datetime-local в RFC3339 (UTC)
+    function formatDateTimeLocalToRFC3339(dtLocal) {
+        if (!dtLocal) return '';
+        // dtLocal format: "YYYY-MM-DDTHH:mm"
+        // Append ":00Z" for UTC
+        return dtLocal + ':00Z';
+    }
+
+    // Обновление URL и загрузка логов
+    function updateURLAndLoad(params) {
+        // Удаляем пустые параметры
+        params.forEach((value, key) => {
+            if (value === '' || value === null || value === undefined) {
+                params.delete(key);
             }
-            const data = await response.json();
-            renderLogs(data.logs);
-            renderPagination(data.meta);
-        }
-
-        // Обновление активного таба
-        function updateActiveTab() {
-            const params = new URLSearchParams(window.location.search);
-            const category = params.get('category') || '';
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                const btnCategory = btn.getAttribute('data-category');
-                if (btnCategory === category) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-        }
-
-        // Обработчик клика по табу
-        function setupTabs() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const category = btn.getAttribute('data-category');
-                    const params = new URLSearchParams(window.location.search);
-                    if (category) {
-                        params.set('category', category);
-                    } else {
-                        params.delete('category');
-                    }
-                    // Удаляем offset при смене категории
-                    params.delete('offset');
-                    // Обновляем URL без перезагрузки страницы
-                    window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-                    updateActiveTab();
-                    loadLogs();
-                });
-            });
-        }
-
-        function renderLogs(logs) {
-            const tbody = document.getElementById('logsBody');
-            tbody.innerHTML = '';
-            logs.forEach(log => {
-                console.log('Log entry:', log);
-                const row = document.createElement('tr');
-                const date = new Date(log.timestamp).toLocaleString();
-                const userId = log.user_id ? log.user_id : 'N/A';
-                const statusClass = log.status === 'success' ? 'status-success' : 'status-error';
-                const details = log.details ? JSON.stringify(log.details, null, 2) : '{}';
-                row.innerHTML = `
-                    <td>${date}</td>
-                    <td>${userId}</td>
-                    <td>${log.ip_address}</td>
-                    <td>${log.action}</td>
-                    <td>${log.resource_type} ${log.resource_id}</td>
-                    <td class="${statusClass}">${log.status}</td>
-                    <td><button class="view-details-btn" data-details="${encodeURIComponent(details)}">View</button></td>
-                `;
-                tbody.appendChild(row);
-            });
-            // Делегирование событий для кнопок
-            tbody.addEventListener('click', function(e) {
-                if (e.target.classList.contains('view-details-btn')) {
-                    const details = decodeURIComponent(e.target.getAttribute('data-details'));
-                    showDetails(details);
-                }
-            });
-        }
-
-        function renderPagination(meta) {
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-            if (meta.total <= meta.limit) return;
-            const pages = Math.ceil(meta.total / meta.limit);
-            for (let i = 0; i < pages; i++) {
-                const a = document.createElement('a');
-                a.href = `?offset=${i * meta.limit}&limit=${meta.limit}`;
-                a.textContent = i + 1;
-                if (i * meta.limit === meta.offset) {
-                    a.classList.add('active');
-                }
-                pagination.appendChild(a);
-            }
-        }
-
-        function showDetails(details) {
-            alert('Details:\n' + details);
-        }
-
-        // Load logs on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            updateActiveTab();
-            setupTabs();
-            loadLogs();
         });
-    </script>
-</body>
-</html>
+        const queryString = params.toString();
+        const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+        window.history.pushState({}, '', newUrl);
+        updateActiveTab();
+        loadLogs();
+    }
+
+    async function loadLogs() {
+        console.log('Loading logs with params:', window.location.search);
+        const params = new URLSearchParams(window.location.search);
+        // Преобразуем даты из datetime-local в RFC3339
+        const fromInput = document.getElementById('from');
+        const toInput = document.getElementById('to');
+        if (fromInput && fromInput.value) {
+            params.set('from', formatDateTimeLocalToRFC3339(fromInput.value));
+        }
+        if (toInput && toInput.value) {
+            params.set('to', formatDateTimeLocalToRFC3339(toInput.value));
+        }
+        const response = await fetch(`/admin/audit/logs?${params.toString()}`);
+        if (!response.ok) {
+            alert('Не удалось загрузить логи');
+            return;
+        }
+        const data = await response.json();
+        console.log('Received logs:', data.logs.length);
+        renderLogs(data.logs);
+        renderPagination(data.meta);
+    }
+
+    // Обновление активного таба
+    function updateActiveTab() {
+        const params = new URLSearchParams(window.location.search);
+        const category = params.get('category') || '';
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            const btnCategory = btn.getAttribute('data-category');
+            if (btnCategory === category) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    // Обработчик клика по табу
+    function setupTabs() {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const category = btn.getAttribute('data-category');
+                const params = new URLSearchParams(window.location.search);
+                if (category) {
+                    params.set('category', category);
+                } else {
+                    params.delete('category');
+                }
+                // Удаляем offset при смене категории
+                params.delete('offset');
+                updateURLAndLoad(params);
+            });
+        });
+    }
+
+    function renderLogs(logs) {
+        const tbody = document.getElementById('logsBody');
+        tbody.innerHTML = '';
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Нет записей</td></tr>';
+            return;
+        }
+        logs.forEach(log => {
+            console.log('Log entry:', log);
+            const row = document.createElement('tr');
+            const date = new Date(log.timestamp).toLocaleString();
+            const userId = log.user_id ? log.user_id : 'N/A';
+            const statusClass = log.status === 'success' ? 'status-success' : 'status-error';
+            const details = log.details ? JSON.stringify(log.details, null, 2) : '{}';
+            row.innerHTML = `
+                <td>${date}</td>
+                <td>${userId}</td>
+                <td>${log.ip_address}</td>
+                <td>${log.action}</td>
+                <td>${log.resource_type} ${log.resource_id}</td>
+                <td class="${statusClass}">${log.status}</td>
+                <td><button class="view-details-btn" data-details="${encodeURIComponent(details)}">Просмотр</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+        // Делегирование событий для кнопок
+        tbody.addEventListener('click', function(e) {
+            if (e.target.classList.contains('view-details-btn')) {
+                const details = decodeURIComponent(e.target.getAttribute('data-details'));
+                showDetails(details);
+            }
+        });
+    }
+
+    function renderPagination(meta) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        if (meta.total <= meta.limit) return;
+        const pages = Math.ceil(meta.total / meta.limit);
+        for (let i = 0; i < pages; i++) {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = i + 1;
+            if (i * meta.limit === meta.offset) {
+                a.classList.add('active');
+            }
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const params = new URLSearchParams(window.location.search);
+                params.set('offset', i * meta.limit);
+                params.set('limit', meta.limit);
+                updateURLAndLoad(params);
+            });
+            pagination.appendChild(a);
+        }
+    }
+
+    function showDetails(details) {
+        alert('Детали:\n' + details);
+    }
+
+    // Обработчик формы фильтра
+    function setupFilterForm() {
+        const form = document.getElementById('filterForm');
+        if (!form) return;
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const params = new URLSearchParams();
+            // Собираем данные формы
+            const formData = new FormData(form);
+            for (let [key, value] of formData.entries()) {
+                if (value) params.set(key, value);
+            }
+            // Удаляем offset при новом фильтре
+            params.delete('offset');
+            updateURLAndLoad(params);
+        });
+    }
+
+    // Load logs on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOMContentLoaded');
+        updateActiveTab();
+        setupTabs();
+        setupFilterForm();
+        loadLogs();
+    });
+
+    // Обработка кнопок браузера вперед/назад
+    window.addEventListener('popstate', () => {
+        loadLogs();
+        updateActiveTab();
+    });
+</script>
 {{ end }}

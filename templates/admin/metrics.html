@@ -1,503 +1,398 @@
 {{ define "admin/metrics.html" }}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metrics - Single Auth</title>
-    <link rel="stylesheet" href="/css/admin.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .metrics-container {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-        .metric-card {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .metric-card h3 {
-            margin-top: 0;
-            color: #495057;
-            font-size: 1.1rem;
-        }
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #007bff;
-            margin: 0.5rem 0;
-        }
-        .metric-sub {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .chart-container {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
-        }
-        .chart-title {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: #343a40;
-        }
-        .metrics-tabs {
-            display: flex;
-            gap: 0.5rem;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .tab-btn {
-            padding: 0.5rem 1rem;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px 4px 0 0;
-            cursor: pointer;
-            font-weight: 500;
-            color: #495057;
-        }
-        .tab-btn:hover {
-            background: #e9ecef;
-        }
-        .tab-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .table-container {
-            overflow-x: auto;
-        }
-        .metrics-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .metrics-table th, .metrics-table td {
-            border: 1px solid #dee2e6;
-            padding: 0.75rem;
-            text-align: left;
-        }
-        .metrics-table th {
-            background-color: #e9ecef;
-            font-weight: 600;
-        }
-        .metrics-table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .filters {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-        .filter-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-        .filter-group label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-        }
-        .filter-group input, .filter-group select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-        .btn-apply {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-apply:hover {
-            background: #0056b3;
-        }
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Metrics Dashboard</h1>
-            <nav>
-                <a href="/admin/">Dashboard</a> |
-                <a href="/admin/users">Users</a> |
-                <a href="/admin/applications">Applications</a> |
-                <a href="/admin/audit/logs">Audit Logs</a> |
-                <a href="/admin/system/logs">System Logs</a> |
-                <a href="/admin/metrics" class="active">Metrics</a>
-            </nav>
-        </header>
+{{ template "admin/layout.html" . }}
+{{ end }}
 
-        <div class="metrics-tabs">
-            <button class="tab-btn active" data-tab="overview">Overview</button>
-            <button class="tab-btn" data-tab="activity">Activity</button>
-            <button class="tab-btn" data-tab="top-users">Top Users</button>
-            <button class="tab-btn" data-tab="system">System Metrics</button>
-        </div>
+{{ define "breadcrumb" }}
+<ul class="breadcrumb">
+    <li><a href="/admin/">Дашборд</a></li>
+    <li>Метрики</li>
+</ul>
+{{ end }}
 
-        <section class="filters">
-            <h3>Filter Period</h3>
-            <form id="filterForm">
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label for="from">From (UTC)</label>
-                        <input type="datetime-local" id="from" name="from">
-                    </div>
-                    <div class="filter-group">
-                        <label for="to">To (UTC)</label>
-                        <input type="datetime-local" id="to" name="to">
-                    </div>
-                    <div class="filter-group">
-                        <label for="hours">Activity Hours</label>
-                        <select id="hours" name="hours">
-                            <option value="24">Last 24 hours</option>
-                            <option value="48">Last 48 hours</option>
-                            <option value="168">Last 7 days</option>
-                            <option value="720">Last 30 days</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="limit">Top Users Limit</label>
-                        <select id="limit" name="limit">
-                            <option value="10">Top 10</option>
-                            <option value="20">Top 20</option>
-                            <option value="50">Top 50</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <button type="submit" class="btn-apply">Apply Filters</button>
-                    </div>
-                </div>
-            </form>
-        </section>
+{{ define "content_metrics" }}
+<div class="metrics-subtabs">
+    <button class="subtab-btn active" data-tab="overview">Обзор</button>
+    <button class="subtab-btn" data-tab="activity">Активность</button>
+    <button class="subtab-btn" data-tab="top-users">Топ пользователей</button>
+    <button class="subtab-btn" data-tab="system">Системные метрики</button>
+</div>
 
-        <div class="metrics-container">
-            <!-- Overview Tab -->
-            <div id="overview-tab" class="tab-content">
-                <h2>Audit Metrics</h2>
-                <div class="metrics-grid" id="auditMetricsGrid">
-                    <!-- Filled by JavaScript -->
-                </div>
-
-                <h2>System Metrics</h2>
-                <div class="metrics-grid" id="systemMetricsGrid">
-                    <!-- Filled by JavaScript -->
-                </div>
+<section class="card mb-3">
+    <h3 class="card-title">Фильтр периода</h3>
+    <form id="filterForm">
+        <div class="filter-row flex flex-wrap gap-2 align-items-end">
+            <div class="form-group flex-1 min-width-200">
+                <label for="from" class="form-label">С (UTC)</label>
+                <input type="datetime-local" id="from" name="from" class="form-control">
             </div>
-
-            <!-- Activity Tab -->
-            <div id="activity-tab" class="tab-content" style="display: none;">
-                <div class="chart-container">
-                    <h3 class="chart-title">Audit Activity by Hour</h3>
-                    <canvas id="activityChart"></canvas>
-                </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="to" class="form-label">По (UTC)</label>
+                <input type="datetime-local" id="to" name="to" class="form-control">
             </div>
-
-            <!-- Top Users Tab -->
-            <div id="top-users-tab" class="tab-content" style="display: none;">
-                <div class="table-container">
-                    <h3>Top Users by Audit Actions</h3>
-                    <table class="metrics-table" id="topUsersTable">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Actions Count</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Filled by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="hours" class="form-label">Часы активности</label>
+                <select id="hours" name="hours" class="form-control">
+                    <option value="24">Последние 24 часа</option>
+                    <option value="48">Последние 48 часов</option>
+                    <option value="168">Последние 7 дней</option>
+                    <option value="720">Последние 30 дней</option>
+                </select>
             </div>
-
-            <!-- System Metrics Tab -->
-            <div id="system-tab" class="tab-content" style="display: none;">
-                <div class="chart-container">
-                    <h3 class="chart-title">System Logs by Level</h3>
-                    <canvas id="systemLevelChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3 class="chart-title">System Logs by Component</h3>
-                    <canvas id="systemComponentChart"></canvas>
-                </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="limit" class="form-label">Лимит топ пользователей</label>
+                <select id="limit" name="limit" class="form-control">
+                    <option value="10">Топ 10</option>
+                    <option value="20">Топ 20</option>
+                    <option value="50">Топ 50</option>
+                </select>
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <button type="submit" class="btn">Применить фильтры</button>
             </div>
         </div>
+    </form>
+</section>
 
-        <div class="loading" id="loadingIndicator">
-            Loading metrics...
+<div class="metrics-container">
+    <!-- Overview Tab -->
+    <div id="overview-tab" class="tab-content">
+        <h2>Метрики аудита</h2>
+        <div class="metrics-grid" id="auditMetricsGrid">
+            <!-- Заполняется JavaScript -->
+        </div>
+
+        <h2>Системные метрики</h2>
+        <div class="metrics-grid" id="systemMetricsGrid">
+            <!-- Заполняется JavaScript -->
         </div>
     </div>
 
-    <script>
-        // State
-        let currentTab = 'overview';
-        let activityChart = null;
-        let systemLevelChart = null;
-        let systemComponentChart = null;
+    <!-- Activity Tab -->
+    <div id="activity-tab" class="tab-content" style="display: none;">
+        <div class="chart-container">
+            <h3 class="chart-title">Активность аудита по часам</h3>
+            <canvas id="activityChart"></canvas>
+        </div>
+    </div>
 
-        // DOM elements
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const tabContents = {
-            overview: document.getElementById('overview-tab'),
-            activity: document.getElementById('activity-tab'),
-            'top-users': document.getElementById('top-users-tab'),
-            system: document.getElementById('system-tab')
-        };
+    <!-- Top Users Tab -->
+    <div id="top-users-tab" class="tab-content" style="display: none;">
+        <div class="table-container">
+            <h3>Топ пользователей по действиям аудита</h3>
+            <table id="topUsersTable">
+                <thead>
+                    <tr>
+                        <th>ID пользователя</th>
+                        <th>Количество действий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Заполняется JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            setupTabs();
-            setupFilters();
+    <!-- System Metrics Tab -->
+    <div id="system-tab" class="tab-content" style="display: none;">
+        <div class="chart-container">
+            <h3 class="chart-title">Системные логи по уровням</h3>
+            <canvas id="systemLevelChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3 class="chart-title">Системные логи по компонентам</h3>
+            <canvas id="systemComponentChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="loading" id="loadingIndicator">
+    Загрузка метрик...
+</div>
+<style>
+    .metrics-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    .metrics-subtabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .subtab-btn {
+        padding: 0.5rem 1rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px 4px 0 0;
+        cursor: pointer;
+        font-weight: 500;
+        color: #495057;
+        transition: var(--transition);
+    }
+    .subtab-btn:hover {
+        background: #e9ecef;
+    }
+    .subtab-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: var(--gray);
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // State
+    let currentTab = 'overview';
+    let activityChart = null;
+    let systemLevelChart = null;
+    let systemComponentChart = null;
+
+    // DOM elements
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const tabContents = {
+        overview: document.getElementById('overview-tab'),
+        activity: document.getElementById('activity-tab'),
+        'top-users': document.getElementById('top-users-tab'),
+        system: document.getElementById('system-tab')
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        setupTabs();
+        setupFilters();
+        loadMetrics();
+    });
+
+    function setupTabs() {
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                switchTab(tab);
+            });
+        });
+    }
+
+    function switchTab(tab) {
+        // Update active button
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            if (btn.getAttribute('data-tab') === tab) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        // Show/hide content
+        Object.keys(tabContents).forEach(key => {
+            tabContents[key].style.display = key === tab ? 'block' : 'none';
+        });
+        currentTab = tab;
+        // If switching to a tab with charts, redraw them (they are already drawn on load)
+    }
+
+    function setupFilters() {
+        const form = document.getElementById('filterForm');
+        // Set default dates (last 24 hours)
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        document.getElementById('from').value = formatDateTimeLocal(yesterday);
+        document.getElementById('to').value = formatDateTimeLocal(now);
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
             loadMetrics();
         });
+    }
 
-        function setupTabs() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tab = btn.getAttribute('data-tab');
-                    switchTab(tab);
-                });
-            });
+    function formatDateTimeLocal(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    async function loadMetrics() {
+        showLoading(true);
+        const from = document.getElementById('from').value;
+        const to = document.getElementById('to').value;
+        const hours = document.getElementById('hours').value;
+        const limit = document.getElementById('limit').value;
+
+        const params = new URLSearchParams();
+        if (from) params.set('from', new Date(from).toISOString());
+        if (to) params.set('to', new Date(to).toISOString());
+        params.set('hours', hours);
+        params.set('limit', limit);
+
+        try {
+            const response = await fetch(`/admin/metrics/data?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            renderOverview(data);
+            renderActivityChart(data.activity_by_hour);
+            renderTopUsersTable(data.top_users);
+            renderSystemCharts(data.system_metrics);
+        } catch (error) {
+            console.error('Failed to load metrics:', error);
+            alert('Не удалось загрузить метрики. Подробности в консоли.');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function showLoading(show) {
+        loadingIndicator.style.display = show ? 'block' : 'none';
+    }
+
+    function renderOverview(data) {
+        // Audit metrics
+        const auditGrid = document.getElementById('auditMetricsGrid');
+        auditGrid.innerHTML = '';
+        if (data.audit_metrics) {
+            const am = data.audit_metrics;
+            auditGrid.appendChild(createMetricCard('Всего действий', am.total, 'Все действия аудита'));
+            auditGrid.appendChild(createMetricCard('Успешно', am.by_status?.success || 0, 'Успешные действия'));
+            auditGrid.appendChild(createMetricCard('Ошибки', am.by_status?.error || 0, 'Неуспешные действия'));
+            // Add more cards for top resource/action if needed
         }
 
-        function switchTab(tab) {
-            // Update active button
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                if (btn.getAttribute('data-tab') === tab) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
+        // System metrics
+        const systemGrid = document.getElementById('systemMetricsGrid');
+        systemGrid.innerHTML = '';
+        if (data.system_metrics) {
+            const sm = data.system_metrics;
+            systemGrid.appendChild(createMetricCard('Всего логов', sm.total, 'Все системные логи'));
+            systemGrid.appendChild(createMetricCard('Инфо', sm.by_level?.info || 0, 'Информационные логи'));
+            systemGrid.appendChild(createMetricCard('Предупреждения', sm.by_level?.warn || 0, 'Логи предупреждений'));
+            systemGrid.appendChild(createMetricCard('Ошибки', sm.by_level?.error || 0, 'Логи ошибок'));
+        }
+    }
+
+    function createMetricCard(title, value, subtitle) {
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        card.innerHTML = `
+            <h3>${title}</h3>
+            <div class="metric-value">${value}</div>
+            <div class="metric-sub">${subtitle}</div>
+        `;
+        return card;
+    }
+
+    function renderActivityChart(points) {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        if (activityChart) {
+            activityChart.destroy();
+        }
+        const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+        const counts = points.map(p => p.count);
+        activityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Действия аудита',
+                    data: counts,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Время' } },
+                    y: { title: { display: true, text: 'Количество' }, beginAtZero: true }
                 }
-            });
-            // Show/hide content
-            Object.keys(tabContents).forEach(key => {
-                tabContents[key].style.display = key === tab ? 'block' : 'none';
-            });
-            currentTab = tab;
-            // If switching to a tab with charts, redraw them (they are already drawn on load)
-        }
-
-        function setupFilters() {
-            const form = document.getElementById('filterForm');
-            // Set default dates (last 24 hours)
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            document.getElementById('from').value = formatDateTimeLocal(yesterday);
-            document.getElementById('to').value = formatDateTimeLocal(now);
-
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                loadMetrics();
-            });
-        }
-
-        function formatDateTimeLocal(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-
-        async function loadMetrics() {
-            showLoading(true);
-            const from = document.getElementById('from').value;
-            const to = document.getElementById('to').value;
-            const hours = document.getElementById('hours').value;
-            const limit = document.getElementById('limit').value;
-
-            const params = new URLSearchParams();
-            if (from) params.set('from', new Date(from).toISOString());
-            if (to) params.set('to', new Date(to).toISOString());
-            params.set('hours', hours);
-            params.set('limit', limit);
-
-            try {
-                const response = await fetch(`/admin/metrics/data?${params.toString()}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                const data = await response.json();
-                renderOverview(data);
-                renderActivityChart(data.activity_by_hour);
-                renderTopUsersTable(data.top_users);
-                renderSystemCharts(data.system_metrics);
-            } catch (error) {
-                console.error('Failed to load metrics:', error);
-                alert('Failed to load metrics. See console for details.');
-            } finally {
-                showLoading(false);
             }
-        }
+        });
+    }
 
-        function showLoading(show) {
-            loadingIndicator.style.display = show ? 'block' : 'none';
-        }
-
-        function renderOverview(data) {
-            // Audit metrics
-            const auditGrid = document.getElementById('auditMetricsGrid');
-            auditGrid.innerHTML = '';
-            if (data.audit_metrics) {
-                const am = data.audit_metrics;
-                auditGrid.appendChild(createMetricCard('Total Actions', am.total, 'All audit actions'));
-                auditGrid.appendChild(createMetricCard('Success', am.by_status?.success || 0, 'Successful actions'));
-                auditGrid.appendChild(createMetricCard('Error', am.by_status?.error || 0, 'Failed actions'));
-                // Add more cards for top resource/action if needed
-            }
-
-            // System metrics
-            const systemGrid = document.getElementById('systemMetricsGrid');
-            systemGrid.innerHTML = '';
-            if (data.system_metrics) {
-                const sm = data.system_metrics;
-                systemGrid.appendChild(createMetricCard('Total Logs', sm.total, 'All system logs'));
-                systemGrid.appendChild(createMetricCard('Info', sm.by_level?.info || 0, 'Info logs'));
-                systemGrid.appendChild(createMetricCard('Warn', sm.by_level?.warn || 0, 'Warning logs'));
-                systemGrid.appendChild(createMetricCard('Error', sm.by_level?.error || 0, 'Error logs'));
-            }
-        }
-
-        function createMetricCard(title, value, subtitle) {
-            const card = document.createElement('div');
-            card.className = 'metric-card';
-            card.innerHTML = `
-                <h3>${title}</h3>
-                <div class="metric-value">${value}</div>
-                <div class="metric-sub">${subtitle}</div>
+    function renderTopUsersTable(users) {
+        const tbody = document.querySelector('#topUsersTable tbody');
+        tbody.innerHTML = '';
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.user_id || 'N/A'}</td>
+                <td>${user.count}</td>
             `;
-            return card;
-        }
+            tbody.appendChild(row);
+        });
+    }
 
-        function renderActivityChart(points) {
-            const ctx = document.getElementById('activityChart').getContext('2d');
-            if (activityChart) {
-                activityChart.destroy();
-            }
-            const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-            const counts = points.map(p => p.count);
-            activityChart = new Chart(ctx, {
-                type: 'line',
+    function renderSystemCharts(systemMetrics) {
+        // Level pie chart
+        const levelCtx = document.getElementById('systemLevelChart').getContext('2d');
+        if (systemLevelChart) {
+            systemLevelChart.destroy();
+        }
+        if (systemMetrics && systemMetrics.by_level) {
+            const labels = Object.keys(systemMetrics.by_level);
+            const data = Object.values(systemMetrics.by_level);
+            systemLevelChart = new Chart(levelCtx, {
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Audit Actions',
-                        data: counts,
-                        borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        fill: true,
-                        tension: 0.4
+                        data: data,
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d']
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: true }
-                    },
-                    scales: {
-                        x: { title: { display: true, text: 'Time' } },
-                        y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+                        legend: { position: 'top' }
                     }
                 }
             });
         }
 
-        function renderTopUsersTable(users) {
-            const tbody = document.querySelector('#topUsersTable tbody');
-            tbody.innerHTML = '';
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.user_id || 'N/A'}</td>
-                    <td>${user.count}</td>
-                `;
-                tbody.appendChild(row);
+        // Component bar chart
+        const componentCtx = document.getElementById('systemComponentChart').getContext('2d');
+        if (systemComponentChart) {
+            systemComponentChart.destroy();
+        }
+        if (systemMetrics && systemMetrics.by_component) {
+            const labels = Object.keys(systemMetrics.by_component);
+            const data = Object.values(systemMetrics.by_component);
+            systemComponentChart = new Chart(componentCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Логи',
+                        data: data,
+                        backgroundColor: '#17a2b8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
             });
         }
-
-        function renderSystemCharts(systemMetrics) {
-            // Level pie chart
-            const levelCtx = document.getElementById('systemLevelChart').getContext('2d');
-            if (systemLevelChart) {
-                systemLevelChart.destroy();
-            }
-            if (systemMetrics && systemMetrics.by_level) {
-                const labels = Object.keys(systemMetrics.by_level);
-                const data = Object.values(systemMetrics.by_level);
-                systemLevelChart = new Chart(levelCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { position: 'top' }
-                        }
-                    }
-                });
-            }
-
-            // Component bar chart
-            const componentCtx = document.getElementById('systemComponentChart').getContext('2d');
-            if (systemComponentChart) {
-                systemComponentChart.destroy();
-            }
-            if (systemMetrics && systemMetrics.by_component) {
-                const labels = Object.keys(systemMetrics.by_component);
-                const data = Object.values(systemMetrics.by_component);
-                systemComponentChart = new Chart(componentCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Logs',
-                            data: data,
-                            backgroundColor: '#17a2b8'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
-                    }
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+    }
+</script>
 {{ end }}

@@ -325,13 +325,29 @@ func (s *Server) handlerMetrics(c *gin.Context) {
 // handlerAuditPage отображает страницу аудита
 func (s *Server) handlerAuditPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/audit_logs.html", gin.H{
-		"title": "Аудит логи",
+		"Title":        "Аудит логи",
+		"ActiveTab":    "audit",
+		"ContentBlock": "content_audit",
+		"HeaderTitle":  "Аудит логи",
 	})
 }
 
 // handlerMetricsPage отображает страницу метрик
 func (s *Server) handlerMetricsPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/metrics.html", gin.H{
-		"title": "Метрики аудита",
+		"Title":        "Метрики аудита",
+		"ActiveTab":    "metrics",
+		"ContentBlock": "content_metrics",
+		"HeaderTitle":  "Метрики аудита",
+	})
+}
+
+// handlerSystemLogsPage отображает страницу системных логов
+func (s *Server) handlerSystemLogsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/system_logs.html", gin.H{
+		"Title":        "Системные логи",
+		"ActiveTab":    "system",
+		"ContentBlock": "content_system",
+		"HeaderTitle":  "Системные логи",
 	})
 }
