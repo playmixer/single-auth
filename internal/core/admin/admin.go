@@ -30,6 +30,7 @@ type Store interface {
 	CreateRole(ctx context.Context, appID, name, description string) (*models.Role, error)
 	UpdRole(ctx context.Context, role *models.Role) error
 	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
+	RemoveRole(ctx context.Context, roleID uint) error
 }
 
 type AdminPanel struct {
@@ -140,6 +141,10 @@ func (a *AdminPanel) CreateRoleApplication(ctx context.Context, appID string, na
 	return role, nil
 }
 
+func (a *AdminPanel) GetRole(ctx context.Context, roleID uint) (*models.Role, error) {
+	return a.store.GetRole(ctx, roleID)
+}
+
 func (a *AdminPanel) UpdateRole(ctx context.Context, roleID uint, name, description string) error {
 	// оставляем только цифры и латиницу
 	name = utils.FilterAlphaNumeric(name)
@@ -157,6 +162,10 @@ func (a *AdminPanel) UpdateRole(ctx context.Context, roleID uint, name, descript
 	role.Name = name
 	role.Description = description
 	return a.store.UpdRole(ctx, role)
+}
+
+func (a *AdminPanel) RemoveRole(ctx context.Context, roleID uint) error {
+	return a.store.RemoveRole(ctx, roleID)
 }
 
 func (a *AdminPanel) UpdRolesUser(ctx context.Context, userID uint, roleIDs []uint) error {

@@ -607,6 +607,38 @@ func (s *Server) handlerAdminApplicationUpdRole(c *gin.Context) {
 
 	c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID)
 }
+
+func (s *Server) handlerAdminApplicationRemoveRole(c *gin.Context) {
+	roleIDs := c.Param("roleID")
+	roleID, err := strconv.ParseUint(roleIDs, 10, 32)
+	if err != nil {
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?error=role_id_not_valid")
+		return
+	}
+
+	// Получаем роль, чтобы узнать appID для редиректа
+	role, err := s.admin.GetRole(c.Request.Context(), uint(roleID))
+	if err != nil {
+		if errors.Is(err, apperror.ErrNotFoundData) {
+			c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?error=role_not_found")
+			return
+		}
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?error=failed_getting_role")
+		return
+	}
+
+	appID := role.ApplicationID.String()
+
+	err = s.admin.RemoveRole(c.Request.Context(), uint(roleID))
+	if err != nil {
+		s.log.Error("failed remove role", zap.Error(err))
+		c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID+"&error=failed_remove_role")
+		return
+	}
+
+	c.Redirect(http.StatusMovedPermanently, "/admin/applications/roles?appID="+appID)
+}
+
 func (s *Server) handlerRoot(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/auth/login")
 }
