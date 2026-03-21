@@ -295,13 +295,10 @@ func (s *Server) handlerAdminUsers(c *gin.Context) {
 	errMessage := c.Query("error")
 
 	search := c.Query("search_query")
-	searchUsers := models.Users{}
-	if search != "" {
-		searchUsers, err = s.admin.FindUsersByLogin(c.Request.Context(), search)
-		if err != nil {
-			errMessage = "failed search users"
-			s.log.Error("failed search users", zap.Error(err))
-		}
+	searchUsers, err := s.admin.FindUsersByLogin(c.Request.Context(), search)
+	if err != nil {
+		errMessage = "failed search users"
+		s.log.Error("failed search users", zap.Error(err))
 	}
 
 	applications, err := s.admin.FindApplicationByTitle(c.Request.Context(), "")
@@ -473,13 +470,11 @@ func (s *Server) handlerAdminApplications(c *gin.Context) {
 	errMessage := c.Query("error")
 	search := c.Query("search_query")
 
-	apps := []models.Application{}
-	if search != "" {
-		apps, err = s.admin.FindApplicationByTitle(c.Request.Context(), search)
-		if err != nil {
-			s.log.Error("failed find applications", zap.Error(err))
-			errMessage = "failed find applications"
-		}
+	apps, err := s.admin.FindApplicationByTitle(c.Request.Context(), search)
+	if err != nil {
+		s.log.Error("failed find applications", zap.Error(err))
+		errMessage = "failed find applications"
+		apps = []models.Application{}
 	}
 
 	c.HTML(http.StatusOK, "admin/applications.html", gin.H{
