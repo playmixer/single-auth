@@ -271,4 +271,4 @@ curl -X GET "https://auth-сервер/api/user/authinfo?appID=ваш_appID" \
 Проект распространяется под лицензией **MIT**. Полный текст лицензии доступен в файле [LICENSE](LICENSE) в корне репозитория.
 
 ---
-*Разработано командой Shkirya Nikita. Лицензия: MIT.*
+*Разработано Shkirya Nikita. Лицензия: MIT.*
