@@ -1,5 +1,7 @@
 FROM golang:1.25 as build
 
+ENV GIN_MODE=release
+
 # create a working directory inside the image
 WORKDIR /app
 
