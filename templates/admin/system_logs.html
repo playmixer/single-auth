@@ -1,0 +1,127 @@
+{{ define "admin/system_logs.html" }}
+{{ template "admin/layout.html" . }}
+{{ end }}
+
+{{ define "breadcrumb" }}
+<ul class="breadcrumb">
+    <li><a href="/admin/">Дашборд</a></li>
+    <li>Системные логи</li>
+</ul>
+{{ end }}
+
+{{/* nav_tabs removed - navigation is now handled by layout */}}
+
+{{ define "content_system" }}
+<section class="card mb-3">
+    <h3 class="card-title">Фильтр логов</h3>
+    <form id="filterForm" method="GET">
+        <div class="filter-row flex flex-wrap gap-2 align-items-end">
+            <div class="form-group flex-1 min-width-200">
+                <label for="level" class="form-label">Уровень</label>
+                <select id="level" name="level" class="form-control">
+                    <option value="">Любой</option>
+                    <option value="error">Ошибка</option>
+                    <option value="warn">Предупреждение</option>
+                    <option value="info">Информация</option>
+                </select>
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="component" class="form-label">Компонент</label>
+                <input type="text" id="component" name="component" class="form-control" placeholder="например, auth, api, database">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="from" class="form-label">С (UTC)</label>
+                <input type="datetime-local" id="from" name="from" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <label for="to" class="form-label">По (UTC)</label>
+                <input type="datetime-local" id="to" name="to" class="form-control">
+            </div>
+            <div class="form-group flex-1 min-width-200">
+                <button type="submit" class="btn">Применить фильтры</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section>
+    <h3>Записи логов</h3>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Уровень</th>
+                    <th>Компонент</th>
+                    <th>Сообщение</th>
+                    <th>Трассировка стека</th>
+                    <th>Метаданные</th>
+                </tr>
+            </thead>
+            <tbody id="logsBody">
+                <!-- Заполняется JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination" id="pagination">
+        <!-- Заполняется JavaScript -->
+    </div>
+</section>
+<script>
+    async function loadLogs() {
+        const params = new URLSearchParams(window.location.search);
+        const response = await fetch(`/admin/system/logs?${params.toString()}`);
+        if (!response.ok) {
+            alert('Не удалось загрузить логи');
+            return;
+        }
+        const data = await response.json();
+        renderLogs(data.logs);
+        renderPagination(data.meta);
+    }
+
+    function renderLogs(logs) {
+        const tbody = document.getElementById('logsBody');
+        tbody.innerHTML = '';
+        logs.forEach(log => {
+            const row = document.createElement('tr');
+            const date = new Date(log.timestamp).toLocaleString();
+            const levelClass = `level-${log.level}`;
+            const stack = log.stack_trace ? log.stack_trace.substring(0, 50) + '...' : '';
+            const metadata = log.metadata ? JSON.stringify(log.metadata, null, 2) : '{}';
+            row.innerHTML = `
+                <td>${date}</td>
+                <td class="${levelClass}">${log.level}</td>
+                <td>${log.component}</td>
+                <td>${log.message}</td>
+                <td>${stack} <button onclick="showDetails('${stack.replace(/'/g, "\\'")}')">Просмотр</button></td>
+                <td><button onclick="showDetails('${metadata.replace(/'/g, "\\'")}')">Просмотр</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function renderPagination(meta) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        if (meta.total <= meta.limit) return;
+        const pages = Math.ceil(meta.total / meta.limit);
+        for (let i = 0; i < pages; i++) {
+            const a = document.createElement('a');
+            a.href = `?offset=${i * meta.limit}&limit=${meta.limit}`;
+            a.textContent = i + 1;
+            if (i * meta.limit === meta.offset) {
+                a.classList.add('active');
+            }
+            pagination.appendChild(a);
+        }
+    }
+
+    function showDetails(content) {
+        alert('Детали:\n' + content);
+    }
+
+    // Load logs on page load
+    document.addEventListener('DOMContentLoaded', loadLogs);
+</script>
+{{ end }}

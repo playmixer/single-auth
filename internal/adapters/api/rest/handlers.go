@@ -222,10 +222,70 @@ func (s *Server) handlerUserProfileChangePassword(c *gin.Context) {
 func (s *Server) handlerAdmin(c *gin.Context) {
 	isAuth, user, _ := s.isAuthenticate(c)
 
+	// Получаем статистику
+	stats := gin.H{}
+	usersCount, err := s.admin.CountUsers(c.Request.Context())
+	if err != nil {
+		s.log.Error("failed to count users", zap.Error(err))
+		usersCount = 0
+	}
+	appsCount, err := s.admin.CountApplications(c.Request.Context())
+	if err != nil {
+		s.log.Error("failed to count applications", zap.Error(err))
+		appsCount = 0
+	}
+	sessionsCount, err := s.admin.CountActiveSessions(c.Request.Context())
+	if err != nil {
+		s.log.Error("failed to count active sessions", zap.Error(err))
+		sessionsCount = 0
+	}
+	rolesCount, err := s.admin.CountRoles(c.Request.Context())
+	if err != nil {
+		s.log.Error("failed to count roles", zap.Error(err))
+		rolesCount = 0
+	}
+
+	// Статистика за последние 30 дней
+	periodStart := time.Now().AddDate(0, 0, -30)
+	usersGrowth, err := s.admin.CountUsersCreatedAfter(c.Request.Context(), periodStart)
+	if err != nil {
+		s.log.Error("failed to count users created after", zap.Error(err))
+		usersGrowth = 0
+	}
+	appsGrowth, err := s.admin.CountApplicationsCreatedAfter(c.Request.Context(), periodStart)
+	if err != nil {
+		s.log.Error("failed to count applications created after", zap.Error(err))
+		appsGrowth = 0
+	}
+	rolesGrowth, err := s.admin.CountRolesCreatedAfter(c.Request.Context(), periodStart)
+	if err != nil {
+		s.log.Error("failed to count roles created after", zap.Error(err))
+		rolesGrowth = 0
+	}
+	sessionsDrop, err := s.admin.CountSessionsCreatedAfter(c.Request.Context(), periodStart)
+	if err != nil {
+		s.log.Error("failed to count sessions created after", zap.Error(err))
+		sessionsDrop = 0
+	}
+
+	stats["users"] = usersCount
+	stats["usersGrowth"] = usersGrowth
+	stats["applications"] = appsCount
+	stats["appsGrowth"] = appsGrowth
+	stats["activeSessions"] = sessionsCount
+	stats["sessionsDrop"] = sessionsDrop
+	stats["roles"] = rolesCount
+	stats["rolesGrowth"] = rolesGrowth
+
 	c.HTML(http.StatusOK, "admin/index.html", gin.H{
-		"status": "ok",
-		"isAuth": isAuth,
-		"user":   user,
+		"status":       "ok",
+		"isAuth":       isAuth,
+		"user":         user,
+		"stats":        stats,
+		"ActiveTab":    "overview",
+		"ContentBlock": "content_overview",
+		"Title":        "Админ-панель",
+		"HeaderTitle":  "Обзор",
 	})
 }
 
@@ -235,13 +295,10 @@ func (s *Server) handlerAdminUsers(c *gin.Context) {
 	errMessage := c.Query("error")
 
 	search := c.Query("search_query")
-	searchUsers := models.Users{}
-	if search != "" {
-		searchUsers, err = s.admin.FindUsersByLogin(c.Request.Context(), search)
-		if err != nil {
-			errMessage = "failed search users"
-			s.log.Error("failed search users", zap.Error(err))
-		}
+	searchUsers, err := s.admin.FindUsersByLogin(c.Request.Context(), search)
+	if err != nil {
+		errMessage = "failed search users"
+		s.log.Error("failed search users", zap.Error(err))
 	}
 
 	applications, err := s.admin.FindApplicationByTitle(c.Request.Context(), "")
@@ -258,6 +315,10 @@ func (s *Server) handlerAdminUsers(c *gin.Context) {
 		"applications": applications,
 		"error":        errMessage,
 		"search":       search,
+		"ActiveTab":    "users",
+		"ContentBlock": "content_users",
+		"Title":        "Пользователи",
+		"HeaderTitle":  "Управление пользователями",
 	})
 }
 
@@ -409,13 +470,11 @@ func (s *Server) handlerAdminApplications(c *gin.Context) {
 	errMessage := c.Query("error")
 	search := c.Query("search_query")
 
-	apps := []models.Application{}
-	if search != "" {
-		apps, err = s.admin.FindApplicationByTitle(c.Request.Context(), search)
-		if err != nil {
-			s.log.Error("failed find applications", zap.Error(err))
-			errMessage = "failed find applications"
-		}
+	apps, err := s.admin.FindApplicationByTitle(c.Request.Context(), search)
+	if err != nil {
+		s.log.Error("failed find applications", zap.Error(err))
+		errMessage = "failed find applications"
+		apps = []models.Application{}
 	}
 
 	c.HTML(http.StatusOK, "admin/applications.html", gin.H{
@@ -426,6 +485,10 @@ func (s *Server) handlerAdminApplications(c *gin.Context) {
 		"error":        errMessage,
 		"applications": apps,
 		"baseURL":      s.baseURL,
+		"ActiveTab":    "applications",
+		"ContentBlock": "content_applications",
+		"Title":        "Приложения",
+		"HeaderTitle":  "Управление приложениями",
 	})
 }
 
@@ -538,9 +601,13 @@ func (s *Server) handlerAdminApplicationRoles(c *gin.Context) {
 	s.log.Debug("app", zap.Any("app", app))
 
 	c.HTML(http.StatusOK, "admin/application_roles.html", gin.H{
-		"app":     app,
-		"baseURL": s.baseURL,
-		"error":   errMessage,
+		"app":          app,
+		"baseURL":      s.baseURL,
+		"error":        errMessage,
+		"ActiveTab":    "application_roles",
+		"ContentBlock": "content_application_roles",
+		"Title":        "Роли приложения",
+		"HeaderTitle":  "Роли приложения",
 	})
 }
 

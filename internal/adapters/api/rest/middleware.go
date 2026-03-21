@@ -45,6 +45,13 @@ func (s *Server) middlewareCheckCookies() gin.HandlerFunc {
 			return
 		}
 
+		// Извлекаем userID и устанавливаем в контекст
+		if userIDs, ok := data["userID"]; ok {
+			if userID, err := strconv.ParseUint(userIDs, 10, 32); err == nil {
+				c.Set("userID", uint(userID))
+			}
+		}
+
 		// Проверяем наличия даты когда токин истечет
 		expiredDateS, ok := data["expiredUnix"]
 		if !ok {
@@ -83,6 +90,8 @@ func (s *Server) middlewareCheckCookies() gin.HandlerFunc {
 				if user, err = s.auth.GetUserByID(c.Request.Context(), uint(userID)); err != nil {
 					return fmt.Errorf("user not found, %w", err)
 				}
+				// Устанавливаем userID в контекст после обновления токена
+				c.Set("userID", user.ID)
 				token, err := s.auth.CreateJWT(map[string]string{
 					"userID":      strconv.Itoa(int(user.ID)),
 					"isAdmin":     strconv.FormatBool(user.IsAdmin),

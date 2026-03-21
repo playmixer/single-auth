@@ -55,6 +55,8 @@ func (s *Storage) migration() error {
 		&models.Session{},
 		&models.Role{},
 		&models.ApplicationEncrypto{},
+		&models.AuditLog{},
+		&models.SystemLog{},
 	); err != nil {
 		return fmt.Errorf("failed migrations: %w", err)
 	}
@@ -302,4 +304,76 @@ func (s *Storage) UpdUserRoles(ctx context.Context, user *models.User, roles []m
 	}
 
 	return nil
+}
+
+func (s *Storage) CountUsers(ctx context.Context) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.User{}).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count users: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountApplications(ctx context.Context) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Application{}).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count applications: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountActiveSessions(ctx context.Context) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Session{}).Where("expired_date > ?", time.Now()).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count active sessions: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountRoles(ctx context.Context) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Role{}).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count roles: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.User{}).Where("created_at >= ?", after).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count users created after: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Application{}).Where("created_at >= ?", after).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count applications created after: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Role{}).Where("created_at >= ?", after).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count roles created after: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Storage) CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.Session{}).Where("created_at >= ?", after).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed count sessions created after: %w", err)
+	}
+	return count, nil
 }

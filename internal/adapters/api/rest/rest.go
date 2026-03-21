@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/playmixer/single-auth/internal/adapters/storage/models"
 	storeType "github.com/playmixer/single-auth/internal/adapters/storage/types"
+	"github.com/playmixer/single-auth/internal/core/audit"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -62,6 +63,17 @@ type AdminManager interface {
 	GetRole(ctx context.Context, roleID uint) (*models.Role, error)
 	UpdateRole(ctx context.Context, roleID uint, name, description string) error
 	RemoveRole(ctx context.Context, roleID uint) error
+
+	// Stats
+	CountUsers(ctx context.Context) (int64, error)
+	CountApplications(ctx context.Context) (int64, error)
+	CountActiveSessions(ctx context.Context) (int64, error)
+	CountRoles(ctx context.Context) (int64, error)
+	// Stats for period
+	CountUsersCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountApplicationsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountRolesCreatedAfter(ctx context.Context, after time.Time) (int64, error)
+	CountSessionsCreatedAfter(ctx context.Context, after time.Time) (int64, error)
 }
 
 type Cache interface {
@@ -75,6 +87,7 @@ type Server struct {
 	log                *logger.Logger
 	auth               AuthManager
 	admin              AdminManager
+	audit              *audit.Manager
 	cache              Cache
 	baseURL            string
 	trustedSubnet      string
@@ -106,6 +119,13 @@ func New(auth AuthManager, admin AdminManager, cache Cache, log *logger.Logger, 
 	}
 
 	return srv
+}
+
+// WithAuditManager добавляет менеджер аудита в сервер
+func WithAuditManager(manager *audit.Manager) Option {
+	return func(s *Server) {
+		s.audit = manager
+	}
 }
 func BaseURL(url string) func(*Server) {
 	return func(s *Server) {
@@ -168,9 +188,14 @@ func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
 	r.LoadHTMLGlob("templates/**/*")
 	r.Static("/css", "./static/css")
-	r.Use(
+	middlewares := []gin.HandlerFunc{
 		s.middlewareLogger(),
-	)
+	}
+	// Добавляем middleware аудита, если аудит включен
+	if s.audit != nil {
+		middlewares = append(middlewares, s.middlewareAudit())
+	}
+	r.Use(middlewares...)
 
 	r.GET("/", s.handlerRoot)
 	r.GET("/auth/login", s.handlerLogin)
@@ -205,6 +230,14 @@ func (s *Server) SetupRouter() *gin.Engine {
 		admin.POST("/applications/roles/:roleID/edit", s.handlerAdminApplicationUpdRole)
 		admin.POST("/applications/roles/:roleID/delete", s.handlerAdminApplicationRemoveRole)
 
+		// Аудит логи
+		admin.GET("/audit", s.handlerAuditPage)
+		admin.GET("/audit/logs", s.handlerAuditLogs)
+		admin.GET("/audit/logs/export", s.handlerAuditExport)
+		admin.GET("/system", s.handlerSystemLogsPage)
+		admin.GET("/system/logs", s.handlerSystemLogs)
+		admin.GET("/metrics", s.handlerMetricsPage)
+		admin.GET("/metrics/data", s.handlerMetrics)
 	}
 
 	return r

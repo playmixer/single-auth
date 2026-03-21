@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -13,10 +14,14 @@ import (
 	"github.com/playmixer/single-auth/internal/adapters/api/rest"
 	"github.com/playmixer/single-auth/internal/adapters/config"
 	"github.com/playmixer/single-auth/internal/adapters/storage"
+	storageaudit "github.com/playmixer/single-auth/internal/adapters/storage/audit"
 	"github.com/playmixer/single-auth/internal/core/admin"
+	coreaudit "github.com/playmixer/single-auth/internal/core/audit"
 	"github.com/playmixer/single-auth/internal/core/auth"
 	"github.com/playmixer/single-auth/pkg/logger"
 	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var (
@@ -55,6 +60,25 @@ func run() error {
 		return fmt.Errorf("failed initialize storage: %w", err)
 	}
 
+	// Создаем соединение с БД для аудита (используем тот же DSN)
+	sqlDB, err := sql.Open("pgx", cfg.Store.Database.DSN)
+	if err != nil {
+		lgr.Error("failed open sql connection for audit", zap.Error(err))
+		return fmt.Errorf("failed open sql connection for audit: %w", err)
+	}
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{})
+	if err != nil {
+		lgr.Error("failed open gorm connection for audit", zap.Error(err))
+		return fmt.Errorf("failed open gorm connection for audit: %w", err)
+	}
+	// Создаем хранилище аудита
+	auditStore := storageaudit.New(gormDB)
+
+	// Создаем менеджер аудита
+	auditManager := coreaudit.New(auditStore, lgr)
+
 	authManager, err := auth.New(lgr, []byte(cfg.SecretKey), store,
 		auth.SetTTLRefreshToken(cfg.API.JWTRefreshTokenTTL),
 	)
@@ -75,6 +99,7 @@ func run() error {
 		rest.SetCookieLifeTime(cfg.API.CookieLifeTime),
 		rest.SetTTLAccessToken(cfg.API.JWTAccessTokenTTL),
 		rest.SetTTLRefreshToken(cfg.API.JWTRefreshTokenTTL),
+		rest.WithAuditManager(auditManager),
 	)
 
 	lgr.Info("Starting")

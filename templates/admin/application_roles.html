@@ -1,192 +1,160 @@
 {{ define "admin/application_roles.html" }}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Роли приложения | Админ-панель</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/admin.css">
-    <style>
-        .role-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-            border-left: 6px solid var(--primary);
-        }
-        .role-card:hover {
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-        }
-        .role-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .role-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--dark);
-        }
-        .role-description {
-            color: var(--gray);
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-        .role-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 1rem;
-        }
-        .edit-form {
-            margin-top: 1.5rem;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e1e5eb;
-        }
-        .add-role-form {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: 2rem;
-            margin-top: 2rem;
-        }
-        .form-row {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .form-row .form-group {
-            flex: 1;
-            min-width: 300px;
-        }
-    </style>
-</head>
-<body>
-    <ul class="breadcrumb">
-        <li><a href="/auth/login">Главная</a></li>
-        <li><a href="/admin">Админ-панель</a></li>
-        <li><a href="/admin/applications">Приложения</a></li>
-        <li>{{ .app.Title }}</li>
-    </ul>
+{{ template "admin/layout.html" . }}
+{{ end }}
 
-    <div class="header">
-        <h1>Роли приложения «{{ .app.Title }}»</h1>
-        <div class="flex gap-2">
-            <a href="/admin/applications" class="btn btn-outline">← Назад к приложениям</a>
+{{ define "breadcrumb" }}
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li><a href="/admin">Админ-панель</a></li>
+    <li><a href="/admin/applications">Приложения</a></li>
+    <li>{{ .app.Title }}</li>
+</ul>
+{{ end }}
+
+{{ define "content_application_roles" }}
+{{ if .error }}
+<div class="error-message mb-3">
+    {{ .error }}
+</div>
+{{ end }}
+
+<div class="card">
+    <h2 class="card-title">Существующие роли</h2>
+    <p>Управляйте ролями, которые могут быть назначены пользователям для этого приложения.</p>
+</div>
+
+<div class="roles-list">
+    {{ $appID := .app.ID }}
+    {{ range .app.Roles }}
+    <div class="role-card" id="role-{{ .ID }}">
+        <div class="role-header">
+            <div>
+                <h3 class="role-title">{{ .Name }}</h3>
+                <div class="role-meta">
+                    <small>ID: {{ .ID }} | Создана: {{ .CreatedAt.Format "02.01.2006" }}</small>
+                </div>
+            </div>
+            <button class="btn btn-sm" onclick="toggleEdit('{{ .ID }}')">Изменить</button>
+        </div>
+        <div class="role-description">
+            {{ if .Description }}
+            {{ .Description }}
+            {{ else }}
+            <span style="color: #adb5bd;">Описание отсутствует</span>
+            {{ end }}
+        </div>
+        <div class="role-actions">
+            <form action="/admin/applications/roles/{{ .ID }}/delete" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить роль «{{ .Name }}»?')">Удалить</button>
+            </form>
+        </div>
+        <div class="edit-form hidden" id="edit-form-{{ .ID }}">
+            <h4>Редактирование роли</h4>
+            <form action="/admin/applications/roles/{{ .ID }}/edit" method="POST">
+                <input type="hidden" name="appID" value="{{ $appID }}">
+                <input type="hidden" name="roleID" value="{{ .ID }}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="edit_role_name_{{ .ID }}">Название роли</label>
+                        <input type="text" id="edit_role_name_{{ .ID }}" name="edit_role_name" value="{{ .Name }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit_role_description_{{ .ID }}">Описание</label>
+                    <textarea id="edit_role_description_{{ .ID }}" name="edit_role_description" rows="4" class="form-control">{{ .Description }}</textarea>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                    <button type="button" class="btn btn-outline" onclick="toggleEdit('{{ .ID }}')">Отмена</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    {{ if .error }}
-    <div class="error-message mb-3">
-        {{ .error }}
+    {{ else }}
+    <div class="card text-center">
+        <h3>Роли отсутствуют</h3>
+        <p>Создайте первую роль для этого приложения.</p>
     </div>
     {{ end }}
+</div>
 
-    <div class="card">
-        <h2 class="card-title">Существующие роли</h2>
-        <p>Управляйте ролями, которые могут быть назначены пользователям для этого приложения.</p>
-    </div>
-
-    <div class="roles-list">
-        {{ $appID := .app.ID }}
-        {{ range .app.Roles }}
-        <div class="role-card" id="role-{{ .ID }}">
-            <div class="role-header">
-                <div>
-                    <h3 class="role-title">{{ .Name }}</h3>
-                    <div class="role-meta">
-                        <small>ID: {{ .ID }} | Создана: {{ .CreatedAt.Format "02.01.2006" }}</small>
-                    </div>
-                </div>
-                <button class="btn btn-sm" onclick="toggleEdit('{{ .ID }}')">Изменить</button>
-            </div>
-            <div class="role-description">
-                {{ if .Description }}
-                {{ .Description }}
-                {{ else }}
-                <span style="color: #adb5bd;">Описание отсутствует</span>
-                {{ end }}
-            </div>
-            <div class="role-actions">
-                <form action="/admin/applications/roles/{{ .ID }}/delete" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить роль «{{ .Name }}»?')">Удалить</button>
-                </form>
-            </div>
-            <div class="edit-form hidden" id="edit-form-{{ .ID }}">
-                <h4>Редактирование роли</h4>
-                <form action="/admin/applications/roles/{{ .ID }}/edit" method="POST">
-                    <input type="hidden" name="appID" value="{{ $appID }}">
-                    <input type="hidden" name="roleID" value="{{ .ID }}">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="edit_role_name_{{ .ID }}">Название роли</label>
-                            <input type="text" id="edit_role_name_{{ .ID }}" name="edit_role_name" value="{{ .Name }}" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="edit_role_description_{{ .ID }}">Описание</label>
-                        <textarea id="edit_role_description_{{ .ID }}" name="edit_role_description" rows="4" class="form-control">{{ .Description }}</textarea>
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        <button type="submit" class="btn btn-success">Сохранить</button>
-                        <button type="button" class="btn btn-outline" onclick="toggleEdit('{{ .ID }}')">Отмена</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        {{ else }}
-        <div class="card text-center">
-            <h3>Роли отсутствуют</h3>
-            <p>Создайте первую роль для этого приложения.</p>
-        </div>
-        {{ end }}
-    </div>
-
-    <div class="add-role-form">
-        <h2 class="card-title">Добавить новую роль</h2>
-        <form action="/admin/applications/roles" method="post">
-            <input type="hidden" name="appID" value="{{ .app.ID }}">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="role_name">Название роли</label>
-                    <input type="text" id="role_name" name="role_name" class="form-control" required>
-                </div>
-            </div>
+<div class="add-role-form">
+    <h2 class="card-title">Добавить новую роль</h2>
+    <form action="/admin/applications/roles" method="post">
+        <input type="hidden" name="appID" value="{{ .app.ID }}">
+        <div class="form-row">
             <div class="form-group">
-                <label class="form-label" for="description">Описание</label>
-                <textarea id="description" name="role_description" rows="4" class="form-control" placeholder="Краткое описание роли (необязательно)"></textarea>
+                <label class="form-label" for="role_name">Название роли</label>
+                <input type="text" id="role_name" name="role_name" class="form-control" required>
             </div>
-            <div class="flex gap-2 mt-3">
-                <button type="submit" class="btn btn-success">Создать роль</button>
-                <button type="reset" class="btn btn-outline">Очистить</button>
-            </div>
-        </form>
-    </div>
-
-    <script>
-        function toggleEdit(roleId) {
-            const form = document.getElementById('edit-form-' + roleId);
-            form.classList.toggle('hidden');
-            // скрыть другие открытые формы редактирования
-            document.querySelectorAll('.edit-form').forEach(f => {
-                if (f.id !== 'edit-form-' + roleId) {
-                    f.classList.add('hidden');
-                }
-            });
-        }
-
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Страница ролей загружена');
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="description">Описание</label>
+            <textarea id="description" name="role_description" rows="4" class="form-control" placeholder="Краткое описание роли (необязательно)"></textarea>
+        </div>
+        <div class="flex gap-2 mt-3">
+            <button type="submit" class="btn btn-success">Создать роль</button>
+            <button type="reset" class="btn btn-outline">Очистить</button>
+        </div>
+    </form>
+</div>
+<style>
+    .role-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: var(--transition);
+        border-left: 6px solid var(--primary);
+    }
+    .role-card:hover {
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    }
+    .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .role-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark);
+    }
+    .role-description {
+        color: var(--gray);
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+    .role-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 1rem;
+    }
+    .add-role-form {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+</style>
+<script>
+    function toggleEdit(roleId) {
+        const form = document.getElementById('edit-form-' + roleId);
+        form.classList.toggle('hidden');
+        // скрыть другие открытые формы редактирования
+        document.querySelectorAll('.edit-form').forEach(f => {
+            if (f.id !== 'edit-form-' + roleId) {
+                f.classList.add('hidden');
+            }
         });
-    </script>
-</body>
-</html>
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Страница ролей загружена');
+    });
+</script>
 {{ end }}

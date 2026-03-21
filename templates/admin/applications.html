@@ -1,283 +1,241 @@
 {{ define "admin/applications.html" }}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Приложения | Админ-панель</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/admin.css">
-    <style>
-        .app-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-right: 15px;
-        }
-        .app-cell {
-            display: flex;
-            align-items: center;
-        }
-        .app-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .app-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-        .app-meta {
-            font-size: 0.875rem;
-            color: var(--gray);
-        }
-        .copy-link {
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: #e1e5eb;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            transition: var(--transition);
-        }
-        .copy-link:hover {
-            background: var(--primary);
-            color: white;
-        }
-        .encryption-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-right: 5px;
-        }
-        .encryption-on {
-            background-color: var(--success);
-            color: white;
-        }
-        .encryption-off {
-            background-color: var(--gray);
-            color: white;
-        }
-        .expandable-row td {
-            padding: 0;
-        }
-        .expandable-content {
-            padding: 1.5rem;
-            border-top: 1px solid #e1e5eb;
-            background-color: #f8f9fa;
-        }
-    </style>
-</head>
-<body>
-    <ul class="breadcrumb">
-        <li><a href="/auth/login">Главная</a></li>
-        <li><a href="/admin">Админ-панель</a></li>
-        <li>Приложения</li>
-    </ul>
+{{ template "admin/layout.html" . }}
+{{ end }}
 
-    <div class="header">
-        <h1>Управление приложениями</h1>
-        <div class="flex gap-2">
-            <a href="/admin" class="btn btn-outline">Назад</a>
-            <button class="btn btn-success" onclick="toggleForm()">+ Добавить приложение</button>
-        </div>
-    </div>
+{{ define "breadcrumb" }}
+<ul class="breadcrumb">
+    <li><a href="/auth/login">Главная</a></li>
+    <li><a href="/admin">Админ-панель</a></li>
+    <li>Приложения</li>
+</ul>
+{{ end }}
 
-    <ul class="nav-tabs">
-        <li><a href="/admin">Обзор</a></li>
-        <li><a href="/admin/users">Пользователи</a></li>
-        <li><a href="/admin/applications" class="active">Приложения</a></li>
-    </ul>
+{{/* nav_tabs removed - navigation is now handled by layout */}}
 
-    <div class="search mb-4">
-        <form action="/admin/applications" method="GET" class="search-input-group">
-            <input type="text" name="search_query" class="form-control" placeholder="Поиск по названию" value="{{ .search }}">
-            <button type="submit" class="btn">Найти</button>
+{{ define "content_applications" }}
+<div class="search mb-4">
+    <form action="/admin/applications" method="GET" class="search-input-group">
+        <input type="text" name="search_query" class="form-control" placeholder="Поиск по названию" value="{{ .search }}">
+        <button type="submit" class="btn">Найти</button>
+    </form>
+</div>
+
+{{ if .error }}
+<div class="error-message mb-3">
+    {{ .error }}
+</div>
+{{ end }}
+
+<div class="form-container" id="addAppForm">
+    <div class="card">
+        <h3 class="card-title">Добавить новое приложение</h3>
+        <form action="/admin/applications" method="post" class="form-group">
+            <div class="flex gap-3" style="flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <label class="form-label" for="title">Название приложения</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <label class="form-label" for="link">Ссылка авторизации (Auth Link)</label>
+                    <input type="text" id="link" name="link" class="form-control" required placeholder="https://example.com/auth/callback">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-3 align-center">
+                <label class="form-label" for="encrypt" style="margin-bottom: 0;">
+                    <input type="checkbox" id="encrypt" name="encrypt" style="margin-right: 8px;">
+                    Включить шифрование (RSA)
+                </label>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button type="submit" class="btn btn-success">Создать приложение</button>
+                <button type="button" class="btn btn-outline" onclick="toggleForm()">Отмена</button>
+            </div>
         </form>
     </div>
+</div>
 
-    {{ if .error }}
-    <div class="error-message mb-3">
-        {{ .error }}
-    </div>
-    {{ end }}
-
-    <div class="form-container" id="addAppForm">
-        <div class="card">
-            <h3 class="card-title">Добавить новое приложение</h3>
-            <form action="/admin/applications" method="post" class="form-group">
-                <div class="flex gap-3" style="flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <label class="form-label" for="title">Название приложения</label>
-                        <input type="text" id="title" name="title" class="form-control" required>
-                    </div>
-                    <div style="flex: 1; min-width: 300px;">
-                        <label class="form-label" for="link">Ссылка авторизации (Auth Link)</label>
-                        <input type="text" id="link" name="link" class="form-control" required placeholder="https://example.com/auth/callback">
-                    </div>
-                </div>
-                <div class="flex gap-3 mt-3 align-center">
-                    <label class="form-label" for="encrypt" style="margin-bottom: 0;">
-                        <input type="checkbox" id="encrypt" name="encrypt" style="margin-right: 8px;">
-                        Включить шифрование (RSA)
-                    </label>
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button type="submit" class="btn btn-success">Создать приложение</button>
-                    <button type="button" class="btn btn-outline" onclick="toggleForm()">Отмена</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Приложение</th>
-                    <th>Ссылка авторизации</th>
-                    <th>Шифрование</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ $baseURL := .baseURL }}
-                {{ range .applications }}
-                <tr>
-                    <td>
-                        <div class="app-cell">
-                            <div class="app-icon">{{ .Title | printf "%.1s" }}</div>
-                            <div class="app-info">
-                                <div class="app-title">
-                                    <a href="{{ $baseURL }}/admin/applications/roles?appID={{ .ID }}">{{ .Title }}</a>
-                                </div>
-                                <div class="app-meta">
-                                    ID: {{ .ID }} | Создано: {{ .CreatedAt.Format "02.01.2006" }}
-                                </div>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Приложение</th>
+                <th>Ссылка авторизации</th>
+                <th>Шифрование</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ $baseURL := .baseURL }}
+            {{ range .applications }}
+            <tr>
+                <td>
+                    <div class="app-cell">
+                        <div class="icon-square">{{ .Title | printf "%.1s" }}</div>
+                        <div class="app-info">
+                            <div class="app-title">
+                                <a href="{{ $baseURL }}/admin/applications/roles?appID={{ .ID }}">{{ .Title }}</a>
+                            </div>
+                            <div class="app-meta">
+                                ID: {{ .ID }} | Создано: {{ .CreatedAt.Format "02.01.2006" }}
                             </div>
                         </div>
-                    </td>
-                    <td>
-                        <div>{{ .AuthLink }}</div>
-                        <div class="mt-1">
-                            <span class="copy-link" data-link="{{ $baseURL }}/auth/login?appID={{ .ID }}">
-                                📋 Скопировать ссылку для входа
-                            </span>
-                        </div>
-                    </td>
-                    <td>
-                        {{ if .EncryptoEnable }}
-                        <span class="encryption-badge encryption-on">Включено</span>
-                        <a href="/admin/applications/{{ .ID }}/encrypt/download/private" target="_blank" class="btn btn-sm btn-outline">Скачать ключ</a>
-                        {{ else }}
-                        <span class="encryption-badge encryption-off">Выключено</span>
-                        {{ end }}
-                    </td>
-                    <td class="actions-cell">
-                        <button class="btn btn-sm" onclick="toggleEdit('{{ .ID }}')">Редактировать</button>
-                        <a href="{{ $baseURL }}/admin/applications/roles?appID={{ .ID }}" class="btn btn-sm btn-outline">Роли</a>
-                        <form action="/admin/applications/{{ .ID }}/delete" method="post" style="display: inline;">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить приложение {{ .Title }}?')">Удалить</button>
+                    </div>
+                </td>
+                <td>
+                    <div>{{ .AuthLink }}</div>
+                    <div class="mt-1">
+                        <span class="copy-link" data-link="{{ $baseURL }}/auth/login?appID={{ .ID }}">
+                            📋 Скопировать ссылку для входа
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    {{ if .EncryptoEnable }}
+                    <span class="encryption-badge encryption-on">Включено</span>
+                    <a href="/admin/applications/{{ .ID }}/encrypt/download/private" target="_blank" class="btn btn-sm btn-outline">Скачать ключ</a>
+                    {{ else }}
+                    <span class="encryption-badge encryption-off">Выключено</span>
+                    {{ end }}
+                </td>
+                <td class="actions-cell">
+                    <button class="btn btn-sm" onclick="toggleEdit('{{ .ID }}')">Редактировать</button>
+                    <a href="{{ $baseURL }}/admin/applications/roles?appID={{ .ID }}" class="btn btn-sm btn-outline">Роли</a>
+                    <form action="/admin/applications/{{ .ID }}/delete" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить приложение {{ .Title }}?')">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            <!-- Расширяемая строка для редактирования -->
+            <tr class="expandable-row hidden" id="appEdit{{ .ID }}">
+                <td colspan="4">
+                    <div class="expandable-content">
+                        <h4>Редактирование приложения {{ .Title }}</h4>
+                        <form action="/admin/applications/{{ .ID }}/update" method="post" class="form-group">
+                            <input type="hidden" name="id" value="{{ .ID }}">
+                            <div class="flex gap-3" style="flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 300px;">
+                                    <label class="form-label" for="title{{ .ID }}">Название</label>
+                                    <input type="text" id="title{{ .ID }}" name="title" value="{{ .Title }}" class="form-control" required>
+                                </div>
+                                <div style="flex: 1; min-width: 300px;">
+                                    <label class="form-label" for="link{{ .ID }}">Ссылка авторизации</label>
+                                    <input type="text" id="link{{ .ID }}" name="link" value="{{ .AuthLink }}" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 mt-3 align-center">
+                                <label class="form-label" for="encrypt{{ .ID }}" style="margin-bottom: 0;">
+                                    <input type="checkbox" id="encrypt{{ .ID }}" name="encrypt" {{ if .EncryptoEnable }}checked{{ end }} style="margin-right: 8px;">
+                                    Включить шифрование (RSA)
+                                </label>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button type="submit" class="btn btn-success">Сохранить изменения</button>
+                                <button type="button" class="btn btn-outline" onclick="toggleEdit('{{ .ID }}')">Отмена</button>
+                            </div>
                         </form>
-                    </td>
-                </tr>
-                <!-- Расширяемая строка для редактирования -->
-                <tr class="expandable-row hidden" id="appEdit{{ .ID }}">
-                    <td colspan="4">
-                        <div class="expandable-content">
-                            <h4>Редактирование приложения {{ .Title }}</h4>
-                            <form action="/admin/applications/{{ .ID }}/update" method="post" class="form-group">
-                                <input type="hidden" name="id" value="{{ .ID }}">
-                                <div class="flex gap-3" style="flex-wrap: wrap;">
-                                    <div style="flex: 1; min-width: 300px;">
-                                        <label class="form-label" for="title{{ .ID }}">Название</label>
-                                        <input type="text" id="title{{ .ID }}" name="title" value="{{ .Title }}" class="form-control" required>
-                                    </div>
-                                    <div style="flex: 1; min-width: 300px;">
-                                        <label class="form-label" for="link{{ .ID }}">Ссылка авторизации</label>
-                                        <input type="text" id="link{{ .ID }}" name="link" value="{{ .AuthLink }}" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="flex gap-3 mt-3 align-center">
-                                    <label class="form-label" for="encrypt{{ .ID }}" style="margin-bottom: 0;">
-                                        <input type="checkbox" id="encrypt{{ .ID }}" name="encrypt" {{ if .EncryptoEnable }}checked{{ end }} style="margin-right: 8px;">
-                                        Включить шифрование (RSA)
-                                    </label>
-                                </div>
-                                <div class="flex gap-2 mt-4">
-                                    <button type="submit" class="btn btn-success">Сохранить изменения</button>
-                                    <button type="button" class="btn btn-outline" onclick="toggleEdit('{{ .ID }}')">Отмена</button>
-                                </div>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+</div>
 
-    {{ if not .applications }}
-    <div class="card text-center">
-        <h3>Приложения не найдены</h3>
-        <p>Добавьте первое приложение для интеграции с системой аутентификации.</p>
-    </div>
-    {{ end }}
+{{ if not .applications }}
+<div class="card text-center">
+    <h3>Приложения не найдены</h3>
+    <p>Добавьте первое приложение для интеграции с системой аутентификации.</p>
+</div>
+{{ end }}
+<style>
+    .app-cell {
+        display: flex;
+        align-items: center;
+    }
+    .app-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .app-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .app-meta {
+        font-size: 0.875rem;
+        color: var(--gray);
+    }
+    .copy-link {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #e1e5eb;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: var(--transition);
+    }
+    .copy-link:hover {
+        background: var(--primary);
+        color: white;
+    }
+    .encryption-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+    .encryption-on {
+        background-color: var(--success);
+        color: white;
+    }
+    .encryption-off {
+        background-color: var(--gray);
+        color: white;
+    }
+</style>
+<script>
+    function toggleForm() {
+        const form = document.getElementById('addAppForm');
+        form.classList.toggle('active');
+    }
 
-    <script>
-        function toggleForm() {
-            const form = document.getElementById('addAppForm');
-            form.classList.toggle('active');
-        }
-
-        function toggleEdit(appId) {
-            const row = document.getElementById('appEdit' + appId);
-            row.classList.toggle('hidden');
-            // скрыть другие открытые редактирования
-            document.querySelectorAll('.expandable-row').forEach(r => {
-                if (r.id !== 'appEdit' + appId && r.id.startsWith('appEdit')) {
-                    r.classList.add('hidden');
-                }
-            });
-        }
-
-        // Копирование ссылки в буфер обмена
-        document.querySelectorAll('.copy-link').forEach(link => {
-            link.addEventListener('click', async function() {
-                const text = this.getAttribute('data-link');
-                try {
-                    await navigator.clipboard.writeText(text);
-                    const original = this.innerHTML;
-                    this.innerHTML = '✅ Скопировано!';
-                    setTimeout(() => {
-                        this.innerHTML = original;
-                    }, 2000);
-                } catch (err) {
-                    alert('Не удалось скопировать');
-                }
-            });
-        });
-
-        // Инициализация: показать форму, если в URL есть show_form=true
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('show_form') === 'true') {
-                document.getElementById('addAppForm').classList.add('active');
+    function toggleEdit(appId) {
+        const row = document.getElementById('appEdit' + appId);
+        row.classList.toggle('hidden');
+        // скрыть другие открытые редактирования
+        document.querySelectorAll('.expandable-row').forEach(r => {
+            if (r.id !== 'appEdit' + appId && r.id.startsWith('appEdit')) {
+                r.classList.add('hidden');
             }
         });
-    </script>
-</body>
-</html>
+    }
+
+    // Копирование ссылки в буфер обмена
+    document.querySelectorAll('.copy-link').forEach(link => {
+        link.addEventListener('click', async function() {
+            const text = this.getAttribute('data-link');
+            try {
+                await navigator.clipboard.writeText(text);
+                const original = this.innerHTML;
+                this.innerHTML = '✅ Скопировано!';
+                setTimeout(() => {
+                    this.innerHTML = original;
+                }, 2000);
+            } catch (err) {
+                alert('Не удалось скопировать');
+            }
+        });
+    });
+
+    // Инициализация: показать форму, если в URL есть show_form=true
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('show_form') === 'true') {
+            document.getElementById('addAppForm').classList.add('active');
+        }
+    });
+</script>
 {{ end }}
