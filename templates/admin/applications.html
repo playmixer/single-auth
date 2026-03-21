@@ -270,9 +270,12 @@
             });
         });
 
-        // Инициализация: скрыть форму добавления по умолчанию
+        // Инициализация: показать форму, если в URL есть show_form=true
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('addAppForm').classList.remove('active');
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('show_form') === 'true') {
+                document.getElementById('addAppForm').classList.add('active');
+            }
         });
     </script>
 </body>
