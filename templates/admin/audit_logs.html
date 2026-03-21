@@ -1,0 +1,327 @@
+{{ define "admin/audit_logs.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs - Single Auth</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <style>
+        .audit-filters {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .btn-apply {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-apply:hover {
+            background: #0056b3;
+        }
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .logs-table th, .logs-table td {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .logs-table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        .logs-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .status-success {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .status-error {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .pagination {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .pagination a {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .pagination a.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .details-popup {
+            max-width: 500px;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+        .audit-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: #495057;
+        }
+        .tab-btn:hover {
+            background: #e9ecef;
+        }
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Audit Logs</h1>
+            <nav>
+                <a href="/admin/">Dashboard</a> |
+                <a href="/admin/users">Users</a> |
+                <a href="/admin/applications">Applications</a> |
+                <a href="/admin/audit/logs" class="active">Audit Logs</a> |
+                <a href="/admin/system/logs">System Logs</a> |
+                <a href="/admin/metrics">Metrics</a>
+            </nav>
+        </header>
+
+        <div class="audit-tabs" style="margin-bottom: 1.5rem;">
+            <button class="tab-btn active" data-category="">All</button>
+            <button class="tab-btn" data-category="auth">Authorization</button>
+            <button class="tab-btn" data-category="admin">Admin Panel</button>
+        </div>
+
+        <section class="audit-filters">
+            <h3>Filter Logs</h3>
+            <form id="filterForm" method="GET">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="user_id">User ID</label>
+                        <input type="number" id="user_id" name="user_id" placeholder="e.g., 123">
+                    </div>
+                    <div class="filter-group">
+                        <label for="action">Action</label>
+                        <input type="text" id="action" name="action" placeholder="e.g., login">
+                    </div>
+                    <div class="filter-group">
+                        <label for="resource_type">Resource Type</label>
+                        <select id="resource_type" name="resource_type">
+                            <option value="">Any</option>
+                            <option value="auth">Auth</option>
+                            <option value="user">User</option>
+                            <option value="application">Application</option>
+                            <option value="role">Role</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="resource_id">Resource ID</label>
+                        <input type="text" id="resource_id" name="resource_id" placeholder="e.g., 456">
+                    </div>
+                    <div class="filter-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="">Any</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="from">From (UTC)</label>
+                        <input type="datetime-local" id="from" name="from">
+                    </div>
+                    <div class="filter-group">
+                        <label for="to">To (UTC)</label>
+                        <input type="datetime-local" id="to" name="to">
+                    </div>
+                    <div class="filter-group">
+                        <button type="submit" class="btn-apply">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section>
+            <h3>Log Entries</h3>
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User ID</th>
+                        <th>IP Address</th>
+                        <th>Action</th>
+                        <th>Resource</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <!-- Filled by JavaScript -->
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination">
+                <!-- Filled by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        async function loadLogs() {
+            const params = new URLSearchParams(window.location.search);
+            const response = await fetch(`/admin/audit/logs?${params.toString()}`);
+            if (!response.ok) {
+                alert('Failed to load logs');
+                return;
+            }
+            const data = await response.json();
+            renderLogs(data.logs);
+            renderPagination(data.meta);
+        }
+
+        // Обновление активного таба
+        function updateActiveTab() {
+            const params = new URLSearchParams(window.location.search);
+            const category = params.get('category') || '';
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const btnCategory = btn.getAttribute('data-category');
+                if (btnCategory === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Обработчик клика по табу
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.getAttribute('data-category');
+                    const params = new URLSearchParams(window.location.search);
+                    if (category) {
+                        params.set('category', category);
+                    } else {
+                        params.delete('category');
+                    }
+                    // Удаляем offset при смене категории
+                    params.delete('offset');
+                    // Обновляем URL без перезагрузки страницы
+                    window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+                    updateActiveTab();
+                    loadLogs();
+                });
+            });
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logsBody');
+            tbody.innerHTML = '';
+            logs.forEach(log => {
+                console.log('Log entry:', log);
+                const row = document.createElement('tr');
+                const date = new Date(log.timestamp).toLocaleString();
+                const userId = log.user_id ? log.user_id : 'N/A';
+                const statusClass = log.status === 'success' ? 'status-success' : 'status-error';
+                const details = log.details ? JSON.stringify(log.details, null, 2) : '{}';
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${userId}</td>
+                    <td>${log.ip_address}</td>
+                    <td>${log.action}</td>
+                    <td>${log.resource_type} ${log.resource_id}</td>
+                    <td class="${statusClass}">${log.status}</td>
+                    <td><button class="view-details-btn" data-details="${encodeURIComponent(details)}">View</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            // Делегирование событий для кнопок
+            tbody.addEventListener('click', function(e) {
+                if (e.target.classList.contains('view-details-btn')) {
+                    const details = decodeURIComponent(e.target.getAttribute('data-details'));
+                    showDetails(details);
+                }
+            });
+        }
+
+        function renderPagination(meta) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            if (meta.total <= meta.limit) return;
+            const pages = Math.ceil(meta.total / meta.limit);
+            for (let i = 0; i < pages; i++) {
+                const a = document.createElement('a');
+                a.href = `?offset=${i * meta.limit}&limit=${meta.limit}`;
+                a.textContent = i + 1;
+                if (i * meta.limit === meta.offset) {
+                    a.classList.add('active');
+                }
+                pagination.appendChild(a);
+            }
+        }
+
+        function showDetails(details) {
+            alert('Details:\n' + details);
+        }
+
+        // Load logs on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateActiveTab();
+            setupTabs();
+            loadLogs();
+        });
+    </script>
+</body>
+</html>
+{{ end }}

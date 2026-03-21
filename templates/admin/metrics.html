@@ -1,0 +1,154 @@
+{{ define "admin/metrics.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrics - Single Auth</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <style>
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .metric-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .metric-card h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #007bff;
+            margin: 0.5rem 0;
+        }
+        .metric-desc {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .chart-placeholder {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-style: italic;
+        }
+        .refresh-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .refresh-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>System Metrics</h1>
+            <nav>
+                <a href="/admin/">Dashboard</a> |
+                <a href="/admin/users">Users</a> |
+                <a href="/admin/applications">Applications</a> |
+                <a href="/admin/audit/logs">Audit Logs</a> |
+                <a href="/admin/system/logs">System Logs</a> |
+                <a href="/admin/metrics" class="active">Metrics</a>
+            </nav>
+        </header>
+
+        <section>
+            <p>Metrics provide insights into system performance, usage, and health. This page is under development.</p>
+            <button class="refresh-btn" onclick="loadMetrics()">Refresh Metrics</button>
+        </section>
+
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <h3>Active Users (24h)</h3>
+                <div class="metric-value" id="activeUsers">--</div>
+                <div class="metric-desc">Number of unique users who logged in the last 24 hours.</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+            <div class="metric-card">
+                <h3>Requests per Second</h3>
+                <div class="metric-value" id="rps">--</div>
+                <div class="metric-desc">Average HTTP requests per second over the last minute.</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+            <div class="metric-card">
+                <h3>Error Rate</h3>
+                <div class="metric-value" id="errorRate">--%</div>
+                <div class="metric-desc">Percentage of requests that resulted in errors (5xx).</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+            <div class="metric-card">
+                <h3>Database Connections</h3>
+                <div class="metric-value" id="dbConnections">--</div>
+                <div class="metric-desc">Current open database connections.</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+            <div class="metric-card">
+                <h3>Audit Events (Today)</h3>
+                <div class="metric-value" id="auditEvents">--</div>
+                <div class="metric-desc">Total audit events recorded today.</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+            <div class="metric-card">
+                <h3>System Uptime</h3>
+                <div class="metric-value" id="uptime">--</div>
+                <div class="metric-desc">Time since last restart.</div>
+                <div class="chart-placeholder">Chart not available</div>
+            </div>
+        </section>
+
+        <section>
+            <h3>Prometheus Metrics</h3>
+            <pre><code id="prometheusMetrics">Loading...</code></pre>
+        </section>
+    </div>
+
+    <script>
+        async function loadMetrics() {
+            // Simulate fetching metrics from API
+            document.getElementById('activeUsers').textContent = Math.floor(Math.random() * 1000);
+            document.getElementById('rps').textContent = (Math.random() * 50).toFixed(1);
+            document.getElementById('errorRate').textContent = (Math.random() * 5).toFixed(1) + '%';
+            document.getElementById('dbConnections').textContent = Math.floor(Math.random() * 20);
+            document.getElementById('auditEvents').textContent = Math.floor(Math.random() * 5000);
+            document.getElementById('uptime').textContent = '12d 4h 30m';
+
+            // Fetch Prometheus metrics (placeholder)
+            try {
+                const response = await fetch('/admin/metrics?format=prometheus');
+                if (response.ok) {
+                    const text = await response.text();
+                    document.getElementById('prometheusMetrics').textContent = text;
+                } else {
+                    document.getElementById('prometheusMetrics').textContent = 'Metrics endpoint not implemented yet.';
+                }
+            } catch (err) {
+                document.getElementById('prometheusMetrics').textContent = 'Failed to load metrics.';
+            }
+        }
+
+        // Load metrics on page load
+        document.addEventListener('DOMContentLoaded', loadMetrics);
+    </script>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,236 @@
+{{ define "admin/system_logs.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Logs - Single Auth</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <style>
+        .system-filters {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .btn-apply {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-apply:hover {
+            background: #0056b3;
+        }
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .logs-table th, .logs-table td {
+            border: 1px solid #dee2e6;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .logs-table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        .logs-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .level-error {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .level-warn {
+            color: #ffc107;
+            font-weight: 500;
+        }
+        .level-info {
+            color: #17a2b8;
+            font-weight: 500;
+        }
+        .pagination {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .pagination a {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .pagination a.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .details-popup {
+            max-width: 500px;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>System Logs</h1>
+            <nav>
+                <a href="/admin/">Dashboard</a> |
+                <a href="/admin/users">Users</a> |
+                <a href="/admin/applications">Applications</a> |
+                <a href="/admin/audit/logs">Audit Logs</a> |
+                <a href="/admin/system/logs" class="active">System Logs</a> |
+                <a href="/admin/metrics">Metrics</a>
+            </nav>
+        </header>
+
+        <section class="system-filters">
+            <h3>Filter Logs</h3>
+            <form id="filterForm" method="GET">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="level">Level</label>
+                        <select id="level" name="level">
+                            <option value="">Any</option>
+                            <option value="error">Error</option>
+                            <option value="warn">Warning</option>
+                            <option value="info">Info</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="component">Component</label>
+                        <input type="text" id="component" name="component" placeholder="e.g., auth, api, database">
+                    </div>
+                    <div class="filter-group">
+                        <label for="from">From (UTC)</label>
+                        <input type="datetime-local" id="from" name="from">
+                    </div>
+                    <div class="filter-group">
+                        <label for="to">To (UTC)</label>
+                        <input type="datetime-local" id="to" name="to">
+                    </div>
+                    <div class="filter-group">
+                        <button type="submit" class="btn-apply">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section>
+            <h3>Log Entries</h3>
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Level</th>
+                        <th>Component</th>
+                        <th>Message</th>
+                        <th>Stack Trace</th>
+                        <th>Metadata</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <!-- Filled by JavaScript -->
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination">
+                <!-- Filled by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        async function loadLogs() {
+            const params = new URLSearchParams(window.location.search);
+            const response = await fetch(`/admin/system/logs?${params.toString()}`);
+            if (!response.ok) {
+                alert('Failed to load logs');
+                return;
+            }
+            const data = await response.json();
+            renderLogs(data.logs);
+            renderPagination(data.meta);
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logsBody');
+            tbody.innerHTML = '';
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                const date = new Date(log.timestamp).toLocaleString();
+                const levelClass = `level-${log.level}`;
+                const stack = log.stack_trace ? log.stack_trace.substring(0, 50) + '...' : '';
+                const metadata = log.metadata ? JSON.stringify(log.metadata, null, 2) : '{}';
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td class="${levelClass}">${log.level}</td>
+                    <td>${log.component}</td>
+                    <td>${log.message}</td>
+                    <td>${stack} <button onclick="showDetails('${stack.replace(/'/g, "\\'")}')">View</button></td>
+                    <td><button onclick="showDetails('${metadata.replace(/'/g, "\\'")}')">View</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderPagination(meta) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            if (meta.total <= meta.limit) return;
+            const pages = Math.ceil(meta.total / meta.limit);
+            for (let i = 0; i < pages; i++) {
+                const a = document.createElement('a');
+                a.href = `?offset=${i * meta.limit}&limit=${meta.limit}`;
+                a.textContent = i + 1;
+                if (i * meta.limit === meta.offset) {
+                    a.classList.add('active');
+                }
+                pagination.appendChild(a);
+            }
+        }
+
+        function showDetails(content) {
+            alert('Details:\n' + content);
+        }
+
+        // Load logs on page load
+        document.addEventListener('DOMContentLoaded', loadLogs);
+    </script>
+</body>
+</html>
+{{ end }}

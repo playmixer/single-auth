@@ -55,6 +55,8 @@ func (s *Storage) migration() error {
 		&models.Session{},
 		&models.Role{},
 		&models.ApplicationEncrypto{},
+		&models.AuditLog{},
+		&models.SystemLog{},
 	); err != nil {
 		return fmt.Errorf("failed migrations: %w", err)
 	}
